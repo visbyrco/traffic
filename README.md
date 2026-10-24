@@ -1,4 +1,4 @@
-# HK Traffic Ops
+# Visbyr Traffic
 
 Live Hong Kong traffic conditions, built on [DATA.GOV.HK](https://data.gov.hk) open datasets.
 A night-ops style dashboard: incident wire, journey times, ~1,000 CCTV stills, detector
@@ -37,15 +37,19 @@ on the map.
 ## Develop
 
 ```bash
-npm install   # repo .npmrc carries the allow-scripts policy (tailwind oxide, sharp)
-npm run dev
+pnpm install   # build scripts are approved in pnpm-workspace.yaml (tailwind oxide, sharp)
+pnpm dev
 ```
 
 `public/maplibre-gl-worker.mjs` is a copy of the MapLibre GL web worker from
-`node_modules`. Turbopack does not emit the worker chunk where MapLibre
+the installed `maplibre-gl` package. Turbopack does not emit the worker chunk where MapLibre
 expects it, so the app serves this copy and points `config.WORKER_URL` at it
 (see `src/components/TrafficMap.tsx`). Re-copy it after upgrading
-`maplibre-gl`.
+`maplibre-gl`:
+
+```bash
+cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs public/maplibre-gl-worker.mjs
+```
 
 ## Deploy to Vercel
 
@@ -53,6 +57,6 @@ No special config. Either:
 
 - **Dashboard:** import this repo at <https://vercel.com/new>, framework preset
   auto-detects Next.js, deploy.
-- **CLI:** `npm i -g vercel && vercel --prod` from the repo root.
+- **CLI:** `pnpm add -g vercel && vercel --prod` from the repo root.
 
 Environment variables: none. All data comes from public endpoints at request time.

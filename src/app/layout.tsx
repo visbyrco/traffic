@@ -21,7 +21,7 @@ const gmono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HK Traffic Ops — live Hong Kong traffic conditions",
+  title: "Visbyr Traffic — live Hong Kong traffic conditions",
   description:
     "Live Hong Kong traffic: incidents, cross-harbour journey times, CCTV snapshots, detector speeds, parking vacancies, roadworks and bus ETAs. Built on DATA.GOV.HK open datasets.",
 };

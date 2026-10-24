@@ -89,7 +89,7 @@ export default function Dashboard() {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3.5">
             <div className="font-display flex h-11 w-11 shrink-0 items-center justify-center rounded-[4px] border-2 border-white text-lg font-bold text-white">HK</div>
             <div className="min-w-0">
-              <h1 className="font-display text-[26px] font-semibold uppercase leading-none tracking-wide text-white">HK Traffic Ops <span className="whitespace-nowrap text-white/75">香港即時交通</span></h1>
+              <h1 className="font-display text-[26px] font-semibold uppercase leading-none tracking-wide text-white">Visbyr Traffic <span className="whitespace-nowrap text-white/75">香港即時交通</span></h1>
               <p className="font-gmono mt-1 text-[11px] uppercase tracking-[0.18em] text-white/65">Live traffic from Transport Department open data · data.gov.hk</p>
             </div>
             <div className="ml-auto flex items-center gap-2.5 rounded-[4px] bg-black px-3 py-2">

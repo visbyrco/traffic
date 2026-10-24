@@ -1,7 +1,7 @@
 /* Shared types, label maps and server-side fetch/parse helpers for
    Transport Department open datasets (DATA.GOV.HK). */
 
-export const UA = { "User-Agent": "hk-traffic-ops/1.0 (Vercel; data.gov.hk)" };
+export const UA = { "User-Agent": "visbyr-traffic/1.0 (Vercel; data.gov.hk)" };
 
 export async function fetchText(url: string, timeoutMs = 20000): Promise<string> {
   const res = await fetch(url, {

@@ -1,0 +1,13 @@
+onlyBuiltDependencies:
+  - "@tailwindcss/oxide"
+  - sharp
+  - unrs-resolver
+  - msgpackr-extract
+  - node-pty
+
+allowBuilds:
+  "@tailwindcss/oxide": true
+  sharp: true
+  unrs-resolver: true
+  msgpackr-extract: true
+  node-pty: true

@@ -43,7 +43,7 @@ export default function Page() {
               </li>
             ))}
           </ul>
-          <p className="font-gmono mt-6 text-[11px] text-stone-600">HK Traffic Ops 香港即時交通 · unofficial · MIT</p>
+          <p className="font-gmono mt-6 text-[11px] text-stone-600">Visbyr Traffic 香港即時交通 · unofficial · MIT</p>
         </div>
       </footer>
     </main>
