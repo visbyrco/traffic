@@ -1,0 +1,223 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as maplibregl from "maplibre-gl";
+import { config as mlConfig } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { Protocol } from "pmtiles";
+import type { Camera, CarPark, Roadwork } from "@/lib/td";
+import type { DetectorPoint } from "./panels-roads";
+
+const TILE_BASE = "https://timothy0509.github.io/hk-pmtiles-generation";
+const STYLE_URL =
+  "https://raw.githubusercontent.com/timothy0509/hk-pmtiles-generation/main/render-style-dark.json";
+
+let protocolRegistered = false;
+function ensureProtocol() {
+  if (!protocolRegistered) {
+    // Turbopack does not emit the worker chunk next to the main chunk, so
+    // point MapLibre at a copy served from public/ instead.
+    mlConfig.WORKER_URL = "/maplibre-gl-worker.mjs";
+    maplibregl.addProtocol("pmtiles", new Protocol().tile);
+    protocolRegistered = true;
+  }
+}
+
+type LayerId = "detectors" | "cameras" | "parks" | "roadworks";
+
+const LAYER_META: { id: LayerId; label: string; on: boolean }[] = [
+  { id: "detectors", label: "Detectors", on: true },
+  { id: "roadworks", label: "Roadworks", on: true },
+  { id: "cameras", label: "Cameras", on: false },
+  { id: "parks", label: "Car parks", on: false },
+];
+
+const INITIAL_LAYERS: Record<LayerId, boolean> = Object.fromEntries(
+  LAYER_META.map((l) => [l.id, l.on]),
+) as Record<LayerId, boolean>;
+
+function parkVacancy(p: CarPark): number | null {
+  const v = p.vacancies.find((x) => x.vehicle === "privateCar") ?? p.vacancies.find((x) => x.vehicle === "P") ?? p.vacancies[0];
+  return v ? v.vacancy : null;
+}
+
+export default function TrafficMap({
+  cameras, detectors, parks, roadworks,
+}: {
+  cameras: Camera[]; detectors: DetectorPoint[]; parks: CarPark[]; roadworks: Roadwork[];
+}) {
+  const el = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [layers, setLayers] = useState<Record<LayerId, boolean>>(INITIAL_LAYERS);
+
+  const geo = useMemo(() => {
+    const fc = (features: object[]): GeoJSON.FeatureCollection => ({
+      type: "FeatureCollection", features: features as GeoJSON.Feature[],
+    });
+    return {
+      detectors: fc(
+        detectors.filter((d) => d.lat && d.lng).slice(0, 1600).map((d) => ({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [d.lng, d.lat] },
+          properties: {
+            title: d.road, sub: `${d.avgSpeed} km/h · vol ${d.volume}/30s · occ ${d.maxOcc}%`,
+            meta: `${d.district} · ${d.id}`, color: d.status === "congested" ? "#ef4444" : d.status === "slow" ? "#f59e0b" : "#22c55e",
+          },
+        })),
+      ),
+      cameras: fc(
+        cameras.filter((c) => c.lat && c.lng).slice(0, 250).map((c) => ({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [c.lng, c.lat] },
+          properties: { title: `${c.key} · ${c.description}`, img: c.url, meta: `${c.region} · ${c.district}`, color: "#ffb000" },
+        })),
+      ),
+      parks: fc(
+        parks.filter((p) => p.lat && p.lng).slice(0, 300).map((p) => {
+          const v = parkVacancy(p);
+          return {
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [p.lng, p.lat] },
+            properties: {
+              title: p.name,
+              sub: v == null ? "no live vacancy" : `${v} private-car spaces`,
+              meta: p.district,
+              color: v == null ? "#78716c" : v <= 0 ? "#ef4444" : v < 10 ? "#f59e0b" : "#22c55e",
+            },
+          };
+        }),
+      ),
+      roadworks: fc(
+        roadworks.filter((r) => r.lat && r.lng).map((r) => ({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [r.lng, r.lat] },
+          properties: {
+            title: r.road, sub: r.detail,
+            meta: `${r.bound} bound · ${r.lane} · ${r.start} → ${r.end}`, color: "#e8b400",
+          },
+        })),
+      ),
+    };
+  }, [cameras, detectors, parks, roadworks]);
+
+  // Init once.
+  useEffect(() => {
+    if (!el.current || mapRef.current) return;
+    let cancelled = false;
+    let map: maplibregl.Map | null = null;
+    (async () => {
+      try {
+        ensureProtocol();
+        const style = await (await fetch(STYLE_URL)).json();
+        style.sources.protomaps.url = `pmtiles://${TILE_BASE}/hong-kong.pmtiles`;
+        if (cancelled || !el.current) return;
+        map = new maplibregl.Map({
+          container: el.current,
+          style,
+          center: [114.1694, 22.3193],
+          zoom: 10.5,
+          minZoom: 9,
+          maxBounds: [[113.7, 22.05], [114.55, 22.65]],
+          attributionControl: false,
+        });
+        map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), "top-right");
+        map.addControl(
+          new maplibregl.AttributionControl({ compact: true, customAttribution: "© OpenStreetMap · tiles: timothy0509/hk-pmtiles-generation" }),
+          "bottom-right",
+        );
+        map.on("load", () => {
+          if (cancelled || !map) return;
+          for (const id of ["detectors", "cameras", "parks", "roadworks"] as const) {
+            map.addSource(id, { type: "geojson", data: geo[id] });
+            map.addLayer({
+              id, type: "circle", source: id,
+              paint: {
+                "circle-radius": 5,
+                "circle-color": ["get", "color"],
+                "circle-stroke-width": 1.5,
+                "circle-stroke-color": "#05080e",
+                "circle-opacity": 0.9,
+              },
+            });
+            map.on("click", id, (e) => {
+              const f = e.features?.[0];
+              if (!f || !map) return;
+              const p = f.properties as { title: string; sub?: string; meta?: string; img?: string };
+              new maplibregl.Popup({ closeButton: false, maxWidth: "260px" })
+                .setLngLat((f.geometry as GeoJSON.Point).coordinates as [number, number])
+                .setHTML(
+                  `<strong>${escapeHtml(p.title)}</strong>` +
+                  (p.sub ? `<br/>${escapeHtml(p.sub)}` : "") +
+                  (p.img ? `<br/><img src="${p.img}" alt="" loading="lazy" style="width:220px;margin-top:6px;border-radius:4px"/>` : "") +
+                  (p.meta ? `<br/><span style="color:#a8a29e">${escapeHtml(p.meta)}</span>` : ""),
+                )
+                .addTo(map);
+            });
+            map.on("mouseenter", id, () => { if (map) map.getCanvas().style.cursor = "pointer"; });
+            map.on("mouseleave", id, () => { if (map) map.getCanvas().style.cursor = ""; });
+            if (!INITIAL_LAYERS[id]) map.setLayoutProperty(id, "visibility", "none");
+          }
+          mapRef.current = map;
+          setStatus("ready");
+        });
+        map.on("error", () => { if (!cancelled) setStatus((s) => (mapRef.current ? s : "error")); });
+      } catch {
+        if (!cancelled) setStatus("error");
+      }
+    })();
+    return () => {
+      cancelled = true;
+      map?.remove();
+      mapRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Push fresh data into sources.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || status !== "ready") return;
+    for (const id of ["detectors", "cameras", "parks", "roadworks"] as const) {
+      const src = map.getSource(id) as maplibregl.GeoJSONSource | undefined;
+      if (src) src.setData(geo[id]);
+    }
+  }, [geo, status]);
+
+  // Toggle visibility.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || status !== "ready") return;
+    for (const id of ["detectors", "cameras", "parks", "roadworks"] as const) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", layers[id] ? "visible" : "none");
+    }
+  }, [layers, status]);
+
+  return (
+    <div className="relative">
+      <div ref={el} className="h-[62vh] min-h-[420px] w-full rounded-md bg-ink-950" />
+      {status !== "ready" && (
+        <div className="absolute inset-0 flex items-center justify-center rounded-md bg-ink-950/80 text-sm text-stone-400">
+          {status === "loading" ? "Loading Hong Kong vector tiles…" : "Tile source unreachable. Check hk-pmtiles-generation Pages status."}
+        </div>
+      )}
+      {status === "ready" && (
+        <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+          {LAYER_META.map((l) => (
+            <button
+              key={l.id}
+              onClick={() => setLayers((s) => ({ ...s, [l.id]: !s[l.id] }))}
+              className={`chip px-2.5 py-1 text-[11px] backdrop-blur transition ${layers[l.id] ? "border-vms-400/50 bg-ink-950/85 text-vms-300" : "bg-ink-950/85 text-stone-500"}`}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+}

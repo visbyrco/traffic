@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: var(--font-display), "Noto Sans HK", "PingFang HK", "Microsoft JhengHei", sans-serif;
+  --font-body: var(--font-body), system-ui, "Noto Sans HK", "PingFang HK", "Microsoft JhengHei", sans-serif;
+  --font-mono2: var(--font-gmono), ui-monospace, "SF Mono", monospace;
+
+  /* asphalt, not navy */
+  --color-ink-950: #0b0d0b;
+  --color-ink-900: #111411;
+  --color-ink-850: #151915;
+  --color-ink-800: #1c211c;
+  --color-ink-700: #2a302a;
+
+  --color-line: rgba(231, 229, 228, 0.13);
+
+  /* traffic-light status, kept literal */
+  --color-go-400: #4ade80;
+  --color-go-500: #22c55e;
+  --color-slow-400: #fbbf24;
+  --color-slow-500: #f59e0b;
+  --color-bad-400: #f87171;
+  --color-bad-500: #ef4444;
+
+  /* VMS amber: dot-matrix boards, warnings, focus */
+  --color-vms-300: #ffd166;
+  --color-vms-400: #ffb000;
+
+  /* TD direction-sign green */
+  --color-sign-500: #159a52;
+  --color-sign-600: #0b6e3c;
+  --color-sign-700: #084a29;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #0b0d0b;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.014) 0 1px,
+    transparent 1px 3px
+  );
+  color: #e7e5e4;
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: #ffb000;
+  color: #000;
+}
+
+:focus-visible {
+  outline: 2px solid #ffb000;
+  outline-offset: 2px;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+}
+.font-gmono {
+  font-family: var(--font-mono2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* flat ledger panel. No gradients, no blur, small radius. */
+.card {
+  background: #131613;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+}
+
+/* square tag, not a pill */
+.chip {
+  border: 1px solid var(--color-line);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* thin square scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a302a transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2a302a;
+  border-radius: 2px;
+}
+
+/* LED blink, like a roadside board. No soft pulse. */
+@keyframes led-blink {
+  0%, 55% { opacity: 1; }
+  56%, 100% { opacity: 0.2; }
+}
+.led {
+  animation: led-blink 1.6s steps(1) infinite;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rise {
+  animation: rise 0.35s ease both;
+}
+.rise-1 { animation-delay: 0.05s; }
+.rise-2 { animation-delay: 0.12s; }
+.rise-3 { animation-delay: 0.19s; }
+.rise-4 { animation-delay: 0.26s; }
+
+/* incident ticker */
+@keyframes ticker-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.ticker-track {
+  animation: ticker-x 60s linear infinite;
+}
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+/* maplibre dark chrome, matched to asphalt */
+.maplibregl-canvas-container {
+  border-radius: 6px;
+}
+.maplibregl-popup-content {
+  background: #141714;
+  color: #e7e5e4;
+  border: 1px solid rgba(231, 229, 228, 0.2);
+  border-radius: 6px;
+  padding: 10px 14px;
+  line-height: 1.45;
+  font-size: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+}
+.maplibregl-popup-tip {
+  border-top-color: #141714 !important;
+  border-bottom-color: #141714 !important;
+}
+.maplibregl-popup-close-button {
+  color: #a8a29e;
+  padding: 2px 8px;
+}
+.maplibregl-ctrl-group {
+  background: #141714 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+}
+.maplibregl-ctrl-group button {
+  background: transparent !important;
+}
+.maplibregl-ctrl-group button span {
+  filter: invert(0.8);
+}
+.maplibregl-ctrl-attrib {
+  background: rgba(11, 13, 11, 0.75) !important;
+  font-size: 10px !important;
+}
+.maplibregl-ctrl-attrib a {
+  color: #a8a29e !important;
+}
+
+input, select {
+  color-scheme: dark;
+}
