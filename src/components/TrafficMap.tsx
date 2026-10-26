@@ -5,7 +5,8 @@ import * as maplibregl from "maplibre-gl";
 import { config as mlConfig } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Protocol } from "pmtiles";
-import { useLocale } from "@/lib/i18n";
+import { pick, useLocale } from "@/lib/i18n";
+import { districtDisplay } from "@/lib/td";
 import type { Camera, CarPark, Roadwork } from "@/lib/td";
 import type { DetectorPoint } from "./panels-roads";
 
@@ -61,7 +62,7 @@ export default function TrafficMap({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [layers, setLayers] = useState<Record<LayerId, boolean>>(LAYER_DEFAULTS);
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
 
   const geo = useMemo(() => {
     const fc = (features: object[]): GeoJSON.FeatureCollection => ({
@@ -73,8 +74,8 @@ export default function TrafficMap({
           type: "Feature",
           geometry: { type: "Point", coordinates: [d.lng, d.lat] },
           properties: {
-            title: d.road, sub: `${d.avgSpeed} km/h · vol ${d.volume}/30s · occ ${d.maxOcc}%`,
-            meta: `${d.district} · ${d.id}`, status: d.status,
+            title: d.road, sub: `${d.avgSpeed} km/h · ${t.map.vol} ${d.volume}/30s · ${t.map.occ} ${d.maxOcc}%`,
+            meta: `${districtDisplay(d.district, locale)} · ${d.id}`, status: d.status,
           },
         })),
       ),
@@ -94,7 +95,7 @@ export default function TrafficMap({
             properties: {
               title: p.name,
               sub: v == null ? t.map.noVacancy : t.map.privateCarSpaces(v),
-              meta: p.district,
+              meta: districtDisplay(p.district, locale),
               vacancy: v == null ? "none" : v <= 0 ? "full" : v < 10 ? "low" : "open",
             },
           };
@@ -105,13 +106,13 @@ export default function TrafficMap({
           type: "Feature",
           geometry: { type: "Point", coordinates: [r.lng, r.lat] },
           properties: {
-            title: r.road, sub: r.detail,
-            meta: `${r.bound} bound · ${r.lane} · ${r.start} → ${r.end}`, kind: "works",
+            title: pick(r.road, r.roadTc, locale), sub: pick(r.detail, r.detailTc, locale),
+            meta: `${t.map.bound(pick(r.bound, r.boundTc, locale))} · ${pick(r.lane, r.laneTc, locale)} · ${r.start} → ${r.end}`, kind: "works",
           },
         })),
       ),
     };
-  }, [cameras, detectors, parks, roadworks, t]);
+  }, [cameras, detectors, parks, roadworks, t, locale]);
 
   // Init once.
   useEffect(() => {

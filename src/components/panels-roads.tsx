@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Camera } from "@/lib/td";
+import { districtDisplay } from "@/lib/td";
 import { useLocale } from "@/lib/i18n";
 import {
   FeedNote, Field, PanelError, SectionHead, Skeleton, StatusLine,
@@ -120,7 +121,7 @@ interface DetectorPayload { points: DetectorPoint[]; window: { date: string; fro
 const STATUS_TONE: Record<DetectorPoint["status"], Tone> = { smooth: "green", slow: "amber", congested: "red" };
 
 export function DetectorsPanel({ poll }: { poll: PollState<DetectorPayload> }) {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
 
@@ -190,9 +191,9 @@ export function DetectorsPanel({ poll }: { poll: PollState<DetectorPayload> }) {
                   <tr key={p.id} className="row-hover border-b border-hairline">
                     <td className="py-2.5 pr-2">
                       <div className="font-medium text-ink">{p.road}</div>
-                      <div className="type-data text-muted">{p.id} · {p.lanes} lanes{p.direction ? ` · ${p.direction}` : ""}</div>
+                      <div className="type-data text-muted">{p.id} · {t.common.lanes(p.lanes)}{p.direction ? ` · ${p.direction}` : ""}</div>
                     </td>
-                    <td className="hidden px-2 py-2.5 text-muted sm:table-cell">{p.district}</td>
+                    <td className="hidden px-2 py-2.5 text-muted sm:table-cell">{districtDisplay(p.district, locale)}</td>
                     <td className="type-data px-2 py-2.5 text-left text-[15px] font-medium tabular-nums text-ink">{p.avgSpeed}<span className="ml-0.5 text-[11px] font-normal text-muted">{t.overview.kmh}</span></td>
                     <td className="type-data hidden px-2 py-2.5 text-right text-muted md:table-cell">{p.volume}</td>
                     <td className="type-data hidden px-2 py-2.5 text-right text-muted md:table-cell">{p.maxOcc}%</td>

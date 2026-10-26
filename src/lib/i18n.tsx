@@ -26,8 +26,7 @@ const en = {
   alertNew: "New",
   alertLatest: "Latest",
   overview: {
-    glance: "Network at a glance",
-    kpiActive: "Active incidents",
+    glance: "Network at a glance",    kpiActive: "Active incidents",
     kpiActiveSub: "TD special traffic news",
     kpiSlow: "Slow detectors",
     kpiSlowSubAll: (total: number) => `of ${total} monitored`,
@@ -54,6 +53,13 @@ const en = {
     mapNote: "Toggle layers top-left. Cameras and car parks are capped for performance; their tabs hold the full searchable lists.",
     loadingMap: "Loading map",
     kmh: "km/h",
+    panels: [
+      "Tai Po Rd · Sha Tin · SB near Racecourse",
+      "Tate's Cairn Hwy · SB near Shek Mun",
+      "Tolo Hwy · SB near Science Park",
+      "New Territories panel 4",
+      "New Territories panel 5",
+    ],
   },
   common: {
     loading: "Loading",
@@ -71,6 +77,9 @@ const en = {
     noMatch: "No incidents match.",
     nothingUnderFilters: "Nothing under these filters.",
     showingSlowest: (shown: number, total: number) => `Showing slowest ${shown} of ${total} detectors.`,
+    near: "near",
+    lanes: (n: number) => `${n} lanes`,
+    tdImages: "TD IMAGES",
   },
   incidents: {
     kicker: "TD · Special traffic news 交通特別消息",
@@ -186,7 +195,7 @@ const en = {
     min: (n: number) => `${n} min`,
     noRouteKmb: (q: string) => `No KMB/LWB route ${q} found.`,
     noRouteCtb: (q: string) => `No Citybus route ${q} found.`,
-    noRouteGmb: (q: string) => `No GMB route ${q} in ${q}.`,
+    noRouteGmb: (code: string, region: string) => `No GMB route ${code} in ${region}.`,
   },
   map: {
     loadingTiles: "Loading Hong Kong vector tiles",
@@ -197,6 +206,9 @@ const en = {
     parks: "Car parks",
     noVacancy: "no live vacancy",
     privateCarSpaces: (v: number) => `${v} private-car spaces`,
+    vol: "vol",
+    occ: "occ",
+    bound: (b: string) => `${b} bound`,
   },
   footer: {
     kicker: "Open data sources 資料來源 · data.gov.hk",
@@ -264,6 +276,13 @@ const zh: Dict = {
     mapNote: "在左上角切換圖層。攝影機和停車場為顧及效能只顯示部分；完整可搜尋列表請見各分頁。",
     loadingMap: "載入地圖",
     kmh: "公里/小時",
+    panels: [
+      "大埔公路 · 沙田 · 南行近馬場",
+      "大老山公路 · 南行近石門",
+      "吐露港公路 · 南行近科學園",
+      "新界告示板 4",
+      "新界告示板 5",
+    ],
   },
   common: {
     loading: "載入中",
@@ -281,6 +300,9 @@ const zh: Dict = {
     noMatch: "沒有符合的事故。",
     nothingUnderFilters: "篩選下沒有結果。",
     showingSlowest: (shown: number, total: number) => `共 ${total} 個偵測器，顯示最慢 ${shown} 個。`,
+    near: "近",
+    lanes: (n: number) => `${n} 線`,
+    tdImages: "運輸署圖像",
   },
   incidents: {
     kicker: "運輸署 · 特別交通消息",
@@ -298,7 +320,7 @@ const zh: Dict = {
   journey: {
     kicker: "運輸署 · 行車時間指標",
     title: "行車時間",
-    blurb: "由運輸署告示板地點至隧道出口及新界目的地的預計車程。地點及目的地名稱沿用運輸署及 HKeMobility 英文寫法。",
+    blurb: "由運輸署告示板地點至隧道出口及新界目的地的預計車程，中文名稱為本站翻譯。",
     smooth: "暢順",
     slow: "緩慢",
     congested: "擠塞",
@@ -396,7 +418,7 @@ const zh: Dict = {
     min: (n: number) => `${n} 分鐘`,
     noRouteKmb: (q: string) => `找不到九巴/龍運路線 ${q}。`,
     noRouteCtb: (q: string) => `找不到城巴路線 ${q}。`,
-    noRouteGmb: (q: string) => `找不到專線小巴路線 ${q}。`,
+    noRouteGmb: (code: string, region: string) => `在${region}找不到專線小巴路線 ${code}。`,
   },
   map: {
     loadingTiles: "載入香港向量圖磚",
@@ -407,6 +429,9 @@ const zh: Dict = {
     parks: "停車場",
     noVacancy: "無即時空位",
     privateCarSpaces: (v: number) => `${v} 個私家車位`,
+    vol: "流量",
+    occ: "佔用率",
+    bound: (b: string) => `${b}`,
   },
   footer: {
     kicker: "開放數據來源 · data.gov.hk",

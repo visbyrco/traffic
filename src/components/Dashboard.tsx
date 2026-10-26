@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import type { Incident, JourneyReading } from "@/lib/td";
+import { districtDisplay, journeyDisplay } from "@/lib/td";
 import { LOCALES, LocaleProvider, intlLocale, pick, useLocale, type Locale } from "@/lib/i18n";
 import { IncidentsPanel, JourneyPanel } from "./panels-traffic";
 import { CamerasPanel, DetectorsPanel, type DetectorPoint } from "./panels-roads";
@@ -41,16 +42,18 @@ function hktClock(locale: Locale): string {
 
 function Clock() {
   const { locale } = useLocale();
+  // Gated on mount: SSR and the first client paint render the same
+  // placeholder, so the per-second time string can't cause a hydration
+  // mismatch when the second rolls over between the two.
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setTick((x) => x + 1), 1000);
     return () => clearInterval(t);
   }, []);
-  void tick;
   return (
     <span className="type-data shrink-0 text-muted">
       <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-good align-middle" aria-hidden />
-      {hktClock(locale)} HKT
+      {tick === 0 ? "" : hktClock(locale)} HKT
     </span>
   );
 }
@@ -73,13 +76,7 @@ function LocaleToggle() {
   );
 }
 
-const PANELS = [
-  { n: 1, code: "sj1", label: "Tai Po Rd · Sha Tin · SB near Racecourse" },
-  { n: 2, code: "sj2", label: "Tate's Cairn Hwy · SB near Shek Mun" },
-  { n: 3, code: "sj3", label: "Tolo Hwy · SB near Science Park" },
-  { n: 4, code: "sj4", label: "New Territories panel 4" },
-  { n: 5, code: "sj5", label: "New Territories panel 5" },
-];
+const PANEL_CODES = ["sj1", "sj2", "sj3", "sj4", "sj5"];
 
 function DashboardInner() {
   const { locale, t } = useLocale();
@@ -128,6 +125,7 @@ function DashboardInner() {
 
   const latestIncident = incidents.data?.incidents?.[0];
   const imgLang = locale === "zh" ? "tc" : "en";
+  const worstD = kpis.worst ? journeyDisplay(kpis.worst, locale) : null;
 
   return (
     <div className="mx-auto w-full max-w-6xl px-5 pb-16 sm:px-8">
@@ -190,7 +188,7 @@ function DashboardInner() {
             <div className="ledger divide-y divide-hairline">
               <KpiRow label={t.overview.kpiActive} sub={t.overview.kpiActiveSub} value={kpis.active != null ? String(kpis.active) : "…"} tone={kpis.active ? "red" : "green"} onClick={() => setTab("incidents")} />
               <KpiRow label={t.overview.kpiSlow} sub={kpis.slowTotal ? t.overview.kpiSlowSubAll(kpis.slowTotal) : t.overview.kpiSlowSub} value={kpis.slowTotal ? `${kpis.slow} / ${kpis.slowTotal}` : kpis.slow ? String(kpis.slow) : "…"} tone={kpis.slow ? "amber" : "green"} onClick={() => setTab("speeds")} />
-              <KpiRow label={t.overview.kpiWorst} sub={kpis.worst ? `${kpis.worst.origin} → ${kpis.worst.destination}` : t.overview.kpiWorstSub} value={kpis.worst ? `${kpis.worst.minutes} ${t.journey.min}` : "…"} tone={kpis.worst && kpis.worst.minutes >= 20 ? "red" : kpis.worst ? "amber" : "green"} onClick={() => setTab("journey")} />
+              <KpiRow label={t.overview.kpiWorst} sub={kpis.worst && worstD ? `${kpis.worst.origin} → ${worstD.destination}` : t.overview.kpiWorstSub} value={kpis.worst ? `${kpis.worst.minutes} ${t.journey.min}` : "…"} tone={kpis.worst && kpis.worst.minutes >= 20 ? "red" : kpis.worst ? "amber" : "green"} onClick={() => setTab("journey")} />
               <KpiRow label={t.overview.kpiFull} sub={t.overview.kpiFullSub} value={parking.data ? String(kpis.full) : "…"} tone={kpis.full ? "amber" : "green"} onClick={() => setTab("parking")} />
             </div>
           </section>
@@ -227,7 +225,7 @@ function DashboardInner() {
                     <span className="type-data w-24 shrink-0 text-[15px] font-medium tabular-nums text-ink">{p.avgSpeed}<span className="ml-1 text-[11px] font-normal text-muted">{t.overview.kmh}</span></span>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[15px] text-ink">{p.road}</div>
-                      <div className="type-data truncate text-muted">{p.district} · {p.id}</div>
+                      <div className="type-data truncate text-muted">{districtDisplay(p.district, locale)} · {p.id}</div>
                     </div>
                     <span className={`status-dot shrink-0 self-center ${p.avgSpeed < 25 ? "bg-bad" : p.avgSpeed < 50 ? "bg-warn" : "bg-good"}`} aria-hidden />
                   </div>
@@ -241,17 +239,17 @@ function DashboardInner() {
           <section>
             <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
               <h3 className="font-display text-xl font-semibold tracking-[-0.02em] text-ink">{t.overview.gantry}</h3>
-              <FeedNote updatedAt={detectors.updatedAt} label="TD IMAGES" />
+              <FeedNote updatedAt={detectors.updatedAt} label={t.common.tdImages} />
             </div>
             <p className="mb-4 text-sm text-muted">{t.overview.gantryBlurb}</p>
             <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
-              {PANELS.map((p) => (
-                <figure key={p.code}>
+              {PANEL_CODES.map((code, i) => (
+                <figure key={code}>
                   <div className="overflow-hidden rounded-md border border-hairline bg-black">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={`https://resource.data.one.gov.hk/td/jss/${p.code}.${imgLang}.png?t=${bustToken}`} alt={p.label} loading="lazy" className="aspect-[4/5] w-full object-contain" />
+                    <img src={`https://resource.data.one.gov.hk/td/jss/${code}.${imgLang}.png?t=${bustToken}`} alt={t.overview.panels[i]} loading="lazy" className="aspect-[4/5] w-full object-contain" />
                   </div>
-                  <figcaption className="type-data mt-1.5 leading-snug text-muted">{p.label}</figcaption>
+                  <figcaption className="type-data mt-1.5 leading-snug text-muted">{t.overview.panels[i]}</figcaption>
                 </figure>
               ))}
             </div>

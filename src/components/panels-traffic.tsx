@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Incident, JourneyReading } from "@/lib/td";
-import { COLOUR_LABEL } from "@/lib/td";
+import { journeyDisplay } from "@/lib/td";
 import { pick, useLocale, type Locale } from "@/lib/i18n";
 import {
   FeedNote, Field, PanelError, SectionHead, Skeleton, StatusLine,
@@ -91,7 +91,7 @@ export function IncidentsPanel({ poll, now }: { poll: PollState<IncidentPayload>
                   </h3>
                   {(pick(i.district, i.districtTc, locale) || pick(i.landmark, i.landmarkTc, locale)) && (
                     <div className="type-data mt-0.5 text-muted">
-                      {[pick(i.district, i.districtTc, locale), pick(i.landmark, i.landmarkTc, locale) && pick(i.landmark, i.landmarkTc, locale) !== pick(i.district, i.districtTc, locale) ? `near ${pick(i.landmark, i.landmarkTc, locale)}` : null].filter(Boolean).join(" · ")}
+                      {[pick(i.district, i.districtTc, locale), pick(i.landmark, i.landmarkTc, locale) && pick(i.landmark, i.landmarkTc, locale) !== pick(i.district, i.districtTc, locale) ? `${t.common.near} ${pick(i.landmark, i.landmarkTc, locale)}` : null].filter(Boolean).join(" · ")}
                     </div>
                   )}
                   <p className={`mt-1 text-[14px] leading-relaxed text-muted ${expanded ? "" : "line-clamp-2"}`}>{body}</p>
@@ -181,18 +181,19 @@ export function JourneyPanel({ poll, now }: { poll: PollState<JourneyPayload>; n
           <div className="border-t border-hairline">
             {readings.map((r, idx) => {
               const tone: Tone = r.colour === 1 ? "green" : r.colour === 2 ? "amber" : "red";
+              const d = journeyDisplay(r, locale);
               return (
                 <div key={`${r.origin}-${r.destinationCode}-${idx}`} className="flex items-baseline gap-4 border-b border-hairline py-3">
                   <span className={`status-dot shrink-0 self-center ${tone === "green" ? "bg-good" : tone === "amber" ? "bg-warn" : "bg-bad"}`} aria-hidden />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[15px] font-medium text-ink" title={`${r.originName} to ${r.destination}`}>
-                      {r.destination}
+                    <div className="truncate text-[15px] font-medium text-ink" title={`${d.originName} to ${d.destination}`}>
+                      {d.destination}
                     </div>
-                    <div className="type-data truncate text-muted">{t.journey.from} {r.originName} · {r.direction}</div>
+                    <div className="type-data truncate text-muted">{t.journey.from} {d.originName} · {d.direction}</div>
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="font-display text-xl font-semibold tabular-nums text-ink">{r.minutes}<span className="type-data ml-1 font-normal text-muted">{t.journey.min}</span></div>
-                    <div className="type-data text-muted">{colourName(r.colour) ?? COLOUR_LABEL[r.colour].label}</div>
+                    <div className="type-data text-muted">{colourName(r.colour)}</div>
                   </div>
                 </div>
               );

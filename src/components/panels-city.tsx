@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { CarPark, Roadwork } from "@/lib/td";
+import { districtDisplay, vehicleLabel } from "@/lib/td";
 import { pick, useLocale, type Locale } from "@/lib/i18n";
 import {
   FeedNote, Field, PanelError, SectionHead, Skeleton, StatusLine,
@@ -19,7 +20,7 @@ function vacancyTone(v: number): Tone {
 }
 
 const VEHICLE_ZH: Record<string, string> = {
-  P: "私家车", privateCar: "私家車",
+  P: "私家車", privateCar: "私家車",
   M: "電單車", motorCycle: "電單車",
   P_D: "傷殘人士",
   L: "輕型貨車", LGV: "輕型貨車",
@@ -28,9 +29,9 @@ const VEHICLE_ZH: Record<string, string> = {
   CV: "商用車", T: "的士", O: "其他", N: "小巴",
 };
 
-function vehicleName(code: string, locale: Locale, fallback: string): string {
-  if (locale === "zh") return VEHICLE_ZH[code] ?? fallback;
-  return fallback;
+function vehicleName(code: string, locale: Locale): string {
+  if (locale === "zh") return VEHICLE_ZH[code] ?? vehicleLabel(code);
+  return vehicleLabel(code);
 }
 
 export function ParkingPanel({ poll, now }: { poll: PollState<ParkingPayload>; now: number }) {
@@ -85,12 +86,12 @@ export function ParkingPanel({ poll, now }: { poll: PollState<ParkingPayload>; n
             <Field label={t.common.district}>
               <select value={district} onChange={(e) => { setDistrict(e.target.value); setShown(48); }} className={inputCls}>
                 <option value="all">{t.common.allDistricts}</option>
-                {districts.map((d) => <option key={d} value={d}>{d}</option>)}
+                {districts.map((d) => <option key={d} value={d}>{districtDisplay(d, locale)}</option>)}
               </select>
             </Field>
             <Field label={t.parking.vehicle}>
               <select value={effectiveVeh} onChange={(e) => setVeh(e.target.value)} className={inputCls}>
-                {vehicles.map((v) => <option key={v} value={v}>{vehicleName(v, locale, v)}</option>)}
+                {vehicles.map((v) => <option key={v} value={v}>{vehicleName(v, locale)}</option>)}
               </select>
             </Field>
             <Field label={t.parking.spacesLabel}>
@@ -107,7 +108,7 @@ export function ParkingPanel({ poll, now }: { poll: PollState<ParkingPayload>; n
               <div key={p.id} className="flex items-baseline gap-4 border-b border-hairline py-3">
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[15px] font-medium text-ink">{p.name}</div>
-                  <div className="type-data truncate text-muted">{p.district} · {p.address}</div>
+                  <div className="type-data truncate text-muted">{districtDisplay(p.district, locale)} · {p.address}</div>
                   <div className="type-data mt-0.5 text-muted">
                     {p.opening ? `${p.opening} · ` : ""}{p.height ? `≤ ${p.height}m · ` : ""}{v ? t.parking.upd(ago(v.lastupdate, now, locale)) : t.parking.noFeed}
                     {v != null && (v.ev != null || v.dis != null) && (
@@ -304,7 +305,7 @@ export function BusesPanel({ now }: { now: number }) {
         const code = routeInput.trim();
         const det = await busGet("gmb", `/route/${gmbRegion}/${code}`);
         const dirs = det.data?.[0]?.directions ?? [];
-        if (dirs.length === 0) throw new Error(t.buses.noRouteGmb(code));
+        if (dirs.length === 0) throw new Error(t.buses.noRouteGmb(code, gmbRegion));
         const vars = dirs.map((d: { route_seq: number; orig_en: string; dest_en: string; orig_tc: string; dest_tc: string }) => ({
           key: `${det.data[0].route_id}|${d.route_seq}`,
           labelEn: `${code} · ${d.orig_en} → ${d.dest_en}`,
