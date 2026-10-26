@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { Incident, JourneyReading } from "@/lib/td";
 import { COLOUR_LABEL } from "@/lib/td";
 import {
-  FeedNote, Field, PanelError, SectionHead, Skeleton, ToneBadge,
+  FeedNote, Field, PanelError, SectionHead, Skeleton, StatusLine,
   ago, hkTime, inputCls, type PollState, type Tone,
 } from "./ui";
 
@@ -39,14 +39,14 @@ export function IncidentsPanel({ poll, now }: { poll: PollState<IncidentPayload>
     <section>
       <SectionHead
         kicker="TD · Special traffic news 交通特別消息"
-        title="Incidents and closures 事故與封路"
+        title="Incidents and closures"
         blurb="Accidents, lane closures and special arrangements from the Transport Department. Refreshes about every minute."
         right={<FeedNote updatedAt={poll.updatedAt} label="LIVE" />}
       />
       {poll.error && <PanelError message={poll.error} onRetry={poll.refresh} />}
       {poll.loading && !poll.data ? <Skeleton rows={5} /> : (
         <>
-          <div className="mb-4 flex flex-wrap gap-3">
+          <div className="mb-5 flex flex-wrap gap-3">
             <Field label="Search location / road" grow>
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. Cross-Harbour, Nathan Road…" className={inputCls} />
             </Field>
@@ -59,31 +59,32 @@ export function IncidentsPanel({ poll, now }: { poll: PollState<IncidentPayload>
               </select>
             </Field>
           </div>
-          {list.length === 0 && <div className="card p-6 text-center text-sm text-stone-400">No incidents match. Quiet roads, for now.</div>}
-          <div className="grid gap-3 md:grid-cols-2">
+          {list.length === 0 && <p className="border-y border-hairline py-8 text-center text-sm text-muted">No incidents match.</p>}
+          <div className="border-t border-hairline">
             {list.map((i, idx) => {
               const t = incidentTone(i.status);
               const expanded = open === i.id;
               return (
-                <article key={`${i.id}-${idx}`} className={`card rise p-4 rise-${Math.min(idx % 4, 3)}`}>
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <ToneBadge tone={t}>{i.status || i.heading}</ToneBadge>
-                    {i.detail && <span className="text-[11px] text-stone-500">{i.detail}</span>}
-                    <span className="font-gmono ml-auto text-[11px] text-stone-500" title={i.announcedAt}>
+                <article key={`${i.id}-${idx}`} className="border-b border-hairline py-4">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <StatusLine tone={t}>{i.status || i.heading}</StatusLine>
+                    {i.detail && <span className="type-data text-muted">{i.detail}</span>}
+                    <span className="type-data ml-auto text-muted" title={i.announcedAt}>
                       {hkTime(i.announcedAt)} · {ago(i.announcedAt, now)}
                     </span>
                   </div>
-                  <h3 className="font-display text-[15px] font-semibold text-white">
+                  <h3 className="mt-1.5 text-[16px] font-semibold leading-snug text-ink">
                     {i.location || i.heading}
-                    {i.direction && <span className="text-stone-400"> → {i.direction}</span>}
+                    {i.direction && <span className="font-normal text-muted"> → {i.direction}</span>}
                   </h3>
-                  <div className="mb-2 flex flex-wrap gap-1.5 pt-1.5">
-                    {i.district && <span className="chip px-2 py-0.5 text-[11px] text-stone-400">{i.district}</span>}
-                    {i.landmark && i.landmark !== i.district && <span className="chip px-2 py-0.5 text-[11px] text-stone-400">near {i.landmark}</span>}
-                  </div>
-                  <p className={`text-[13px] leading-relaxed text-stone-300 ${expanded ? "" : "line-clamp-2"}`}>{i.content}</p>
+                  {(i.district || i.landmark) && (
+                    <div className="type-data mt-0.5 text-muted">
+                      {[i.district, i.landmark && i.landmark !== i.district ? `near ${i.landmark}` : null].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
+                  <p className={`mt-1 text-[14px] leading-relaxed text-muted ${expanded ? "" : "line-clamp-2"}`}>{i.content}</p>
                   {i.content && i.content.length > 140 && (
-                    <button onClick={() => setOpen(expanded ? null : i.id)} className="mt-1 text-xs text-vms-300 hover:underline">
+                    <button onClick={() => setOpen(expanded ? null : i.id)} className="mt-1 text-[13px] text-accent hover:underline">
                       {expanded ? "Show less" : "Read full notice"}
                     </button>
                   )}
@@ -124,61 +125,56 @@ export function JourneyPanel({ poll, now }: { poll: PollState<JourneyPayload>; n
     <section>
       <SectionHead
         kicker="TD · Journey time indicators"
-        title="Journey times 行車時間"
-        blurb="Drive-time estimates from TD sign sites to tunnel exits and NT destinations. Site and destination names follow TD and HKeMobility wording, and the colour chips are TD's own codes."
+        title="Journey times"
+        blurb="Drive-time estimates from TD sign sites to tunnel exits and NT destinations. Site and destination names follow TD and HKeMobility wording."
         right={<FeedNote updatedAt={poll.updatedAt} label="LIVE" />}
       />
       {poll.error && <PanelError message={poll.error} onRetry={poll.refresh} />}
       {poll.loading && !poll.data ? <Skeleton rows={4} /> : poll.data && (
         <>
-          <div className="mb-4 grid grid-cols-3 gap-2">
-            {([1, 2, 3] as const).map((c) => (
-              <div key={c} className="card flex items-center gap-3 px-4 py-3">
-                <span className={`font-gmono text-2xl font-bold ${c === 1 ? "text-go-400" : c === 2 ? "text-slow-400" : "text-bad-400"}`}>
-                  {counts[c]}
-                </span>
-                <span className="text-xs text-stone-400">routes<br />{COLOUR_LABEL[c].label.toLowerCase()}</span>
-              </div>
-            ))}
+          <div className="type-data mb-5 flex flex-wrap gap-x-5 gap-y-1 text-muted">
+            <span><span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-good align-middle" />{counts[1]} smooth</span>
+            <span><span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-warn align-middle" />{counts[2]} slow</span>
+            <span><span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-bad align-middle" />{counts[3]} congested</span>
           </div>
-          <div className="mb-4 flex flex-wrap items-end gap-3">
+          <div className="mb-5 flex flex-wrap items-end gap-3">
             <Field label="Origin region">
               <select value={region} onChange={(e) => setRegion(e.target.value)} className={inputCls}>
                 <option value="all">All regions</option>
                 {REGION_ORDER.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
             </Field>
-            <label className="chip flex cursor-pointer items-center gap-2 px-3 py-2 text-xs text-stone-300">
-              <input type="checkbox" checked={harbourOnly} onChange={(e) => setHarbourOnly(e.target.checked)} className="accent-vms-400" />
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-hairline px-3 py-2 text-[13px] text-muted">
+              <input type="checkbox" checked={harbourOnly} onChange={(e) => setHarbourOnly(e.target.checked)} className="accent-accent" />
               Harbour crossings only
             </label>
             {poll.data.capturedAt && (
-              <span className="font-gmono pb-2 text-[11px] text-stone-500">
+              <span className="type-data pb-2 text-muted">
                 TD capture {hkTime(poll.data.capturedAt)} · {ago(poll.data.capturedAt, now)}
               </span>
             )}
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="border-t border-hairline">
             {readings.map((r, idx) => {
               const tone: Tone = r.colour === 1 ? "green" : r.colour === 2 ? "amber" : "red";
               return (
-                <div key={`${r.origin}-${r.destinationCode}-${idx}`} className="card flex items-center gap-3 px-4 py-3">
+                <div key={`${r.origin}-${r.destinationCode}-${idx}`} className="flex items-baseline gap-4 border-b border-hairline py-3">
+                  <span className={`status-dot shrink-0 self-center ${tone === "green" ? "bg-good" : tone === "amber" ? "bg-warn" : "bg-bad"}`} aria-hidden />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] font-semibold text-white" title={`${r.originName} to ${r.destination}`}>
+                    <div className="truncate text-[15px] font-medium text-ink" title={`${r.originName} to ${r.destination}`}>
                       {r.destination}
                     </div>
-                    <div className="truncate text-[11px] text-stone-400">from {r.originName}</div>
-                    <div className="font-gmono text-[10px] uppercase tracking-wider text-stone-600">{r.direction} · {r.origin}</div>
+                    <div className="type-data truncate text-muted">from {r.originName} · {r.direction}</div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-gmono text-xl font-bold text-white">{r.minutes}<span className="text-xs font-normal text-stone-500"> min</span></div>
-                    <ToneBadge tone={tone}>{COLOUR_LABEL[r.colour].label}</ToneBadge>
+                  <div className="shrink-0 text-right">
+                    <div className="font-display text-xl font-semibold tabular-nums text-ink">{r.minutes}<span className="type-data ml-1 font-normal text-muted">min</span></div>
+                    <div className="type-data text-muted">{COLOUR_LABEL[r.colour].label}</div>
                   </div>
                 </div>
               );
             })}
           </div>
-          {readings.length === 0 && <div className="card p-6 text-center text-sm text-stone-400">Nothing under these filters.</div>}
+          {readings.length === 0 && <p className="border-b border-hairline py-8 text-center text-sm text-muted">Nothing under these filters.</p>}
         </>
       )}
     </section>

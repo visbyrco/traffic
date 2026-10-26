@@ -9,8 +9,21 @@ import type { Camera, CarPark, Roadwork } from "@/lib/td";
 import type { DetectorPoint } from "./panels-roads";
 
 const TILE_BASE = "https://timothy0509.github.io/hk-pmtiles-generation";
-const STYLE_URL =
+const STYLE_DARK_URL =
   "https://raw.githubusercontent.com/timothy0509/hk-pmtiles-generation/main/render-style-dark.json";
+const STYLE_LIGHT_URL =
+  "https://raw.githubusercontent.com/timothy0509/hk-pmtiles-generation/main/render-style.json";
+
+function isDarkMode(): boolean {
+  if (typeof window === "undefined") return false;
+  if (document.documentElement.classList.contains("dark")) return true;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+const PALETTE = {
+  light: { good: "#18794e", warn: "#8a5a00", bad: "#b3261e", accent: "#0d4a50", grey: "#8a9596", stroke: "#ffffff" },
+  dark: { good: "#6fce97", warn: "#e5b45a", bad: "#ef8f88", accent: "#8fd2d6", grey: "#6b7677", stroke: "#121515" },
+};
 
 let protocolRegistered = false;
 function ensureProtocol() {
@@ -62,7 +75,7 @@ export default function TrafficMap({
           geometry: { type: "Point", coordinates: [d.lng, d.lat] },
           properties: {
             title: d.road, sub: `${d.avgSpeed} km/h · vol ${d.volume}/30s · occ ${d.maxOcc}%`,
-            meta: `${d.district} · ${d.id}`, color: d.status === "congested" ? "#ef4444" : d.status === "slow" ? "#f59e0b" : "#22c55e",
+            meta: `${d.district} · ${d.id}`, status: d.status,
           },
         })),
       ),
@@ -70,7 +83,7 @@ export default function TrafficMap({
         cameras.filter((c) => c.lat && c.lng).slice(0, 250).map((c) => ({
           type: "Feature",
           geometry: { type: "Point", coordinates: [c.lng, c.lat] },
-          properties: { title: `${c.key} · ${c.description}`, img: c.url, meta: `${c.region} · ${c.district}`, color: "#ffb000" },
+          properties: { title: `${c.key} · ${c.description}`, img: c.url, meta: `${c.region} · ${c.district}`, kind: "camera" },
         })),
       ),
       parks: fc(
@@ -83,7 +96,7 @@ export default function TrafficMap({
               title: p.name,
               sub: v == null ? "no live vacancy" : `${v} private-car spaces`,
               meta: p.district,
-              color: v == null ? "#78716c" : v <= 0 ? "#ef4444" : v < 10 ? "#f59e0b" : "#22c55e",
+              vacancy: v == null ? "none" : v <= 0 ? "full" : v < 10 ? "low" : "open",
             },
           };
         }),
@@ -94,7 +107,7 @@ export default function TrafficMap({
           geometry: { type: "Point", coordinates: [r.lng, r.lat] },
           properties: {
             title: r.road, sub: r.detail,
-            meta: `${r.bound} bound · ${r.lane} · ${r.start} → ${r.end}`, color: "#e8b400",
+            meta: `${r.bound} bound · ${r.lane} · ${r.start} → ${r.end}`, kind: "works",
           },
         })),
       ),
@@ -109,8 +122,17 @@ export default function TrafficMap({
     (async () => {
       try {
         ensureProtocol();
-        const style = await (await fetch(STYLE_URL)).json();
-        style.sources.protomaps.url = `pmtiles://${TILE_BASE}/hong-kong.pmtiles`;
+        const prefersDark = isDarkMode();
+        const urls = prefersDark ? [STYLE_DARK_URL, STYLE_LIGHT_URL] : [STYLE_LIGHT_URL, STYLE_DARK_URL];
+        let style: maplibregl.StyleSpecification | null = null;
+        for (const u of urls) {
+          try {
+            const r = await fetch(u);
+            if (r.ok) { style = await r.json(); break; }
+          } catch { /* try next */ }
+        }
+        if (!style) throw new Error("style unreachable");
+        (style.sources as Record<string, { url?: string }>)["protomaps"].url = `pmtiles://${TILE_BASE}/hong-kong.pmtiles`;
         if (cancelled || !el.current) return;
         map = new maplibregl.Map({
           container: el.current,
@@ -126,6 +148,13 @@ export default function TrafficMap({
           new maplibregl.AttributionControl({ compact: true, customAttribution: "© OpenStreetMap · tiles: timothy0509/hk-pmtiles-generation" }),
           "bottom-right",
         );
+        const pal = prefersDark ? PALETTE.dark : PALETTE.light;
+        const LAYER_COLOR: Record<LayerId, maplibregl.ExpressionSpecification> = {
+          detectors: ["match", ["get", "status"], "congested", pal.bad, "slow", pal.warn, pal.good] as unknown as maplibregl.ExpressionSpecification,
+          cameras: pal.accent as unknown as maplibregl.ExpressionSpecification,
+          parks: ["match", ["get", "vacancy"], "full", pal.bad, "low", pal.warn, "open", pal.good, pal.grey] as unknown as maplibregl.ExpressionSpecification,
+          roadworks: pal.warn as unknown as maplibregl.ExpressionSpecification,
+        };
         map.on("load", () => {
           if (cancelled || !map) return;
           for (const id of ["detectors", "cameras", "parks", "roadworks"] as const) {
@@ -134,9 +163,9 @@ export default function TrafficMap({
               id, type: "circle", source: id,
               paint: {
                 "circle-radius": 5,
-                "circle-color": ["get", "color"],
+                "circle-color": LAYER_COLOR[id],
                 "circle-stroke-width": 1.5,
-                "circle-stroke-color": "#05080e",
+                "circle-stroke-color": pal.stroke,
                 "circle-opacity": 0.9,
               },
             });
@@ -150,7 +179,7 @@ export default function TrafficMap({
                   `<strong>${escapeHtml(p.title)}</strong>` +
                   (p.sub ? `<br/>${escapeHtml(p.sub)}` : "") +
                   (p.img ? `<br/><img src="${p.img}" alt="" loading="lazy" style="width:220px;margin-top:6px;border-radius:4px"/>` : "") +
-                  (p.meta ? `<br/><span style="color:#a8a29e">${escapeHtml(p.meta)}</span>` : ""),
+                  (p.meta ? `<br/><span style="color:var(--vis-muted)">${escapeHtml(p.meta)}</span>` : ""),
                 )
                 .addTo(map);
             });
@@ -195,10 +224,10 @@ export default function TrafficMap({
 
   return (
     <div className="relative">
-      <div ref={el} className="h-[62vh] min-h-[420px] w-full rounded-md bg-ink-950" />
+      <div ref={el} className="h-[62vh] min-h-[420px] w-full rounded-[10px] bg-wash" />
       {status !== "ready" && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-md bg-ink-950/80 text-sm text-stone-400">
-          {status === "loading" ? "Loading Hong Kong vector tiles…" : "Tile source unreachable. Check hk-pmtiles-generation Pages status."}
+        <div className="absolute inset-0 flex items-center justify-center rounded-[10px] bg-wash text-sm text-muted">
+          {status === "loading" ? "Loading Hong Kong vector tiles" : "Tile source unreachable. Check hk-pmtiles-generation Pages status."}
         </div>
       )}
       {status === "ready" && (
@@ -207,7 +236,7 @@ export default function TrafficMap({
             <button
               key={l.id}
               onClick={() => setLayers((s) => ({ ...s, [l.id]: !s[l.id] }))}
-              className={`chip px-2.5 py-1 text-[11px] backdrop-blur transition ${layers[l.id] ? "border-vms-400/50 bg-ink-950/85 text-vms-300" : "bg-ink-950/85 text-stone-500"}`}
+              className={`type-data rounded-md border px-2.5 py-1 backdrop-blur transition ${layers[l.id] ? "border-ink bg-card/95 text-ink" : "border-hairline bg-card/95 text-muted"}`}
             >
               {l.label}
             </button>

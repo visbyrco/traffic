@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Camera } from "@/lib/td";
 import {
-  FeedNote, Field, PanelError, SectionHead, Skeleton, ToneBadge,
+  FeedNote, Field, PanelError, SectionHead, Skeleton, StatusLine,
   inputCls, type PollState, type Tone,
 } from "./ui";
 
@@ -42,16 +42,16 @@ export function CamerasPanel({ poll, bustToken, onBust }: {
   return (
     <section>
       <SectionHead
-        kicker="TD · Traffic snapshots 交通快拍 · ~1,000 CCTV"
-        title="CCTV stills 閉路電視"
-        blurb="Roadside camera stills from major roads. Frames sit on TD's servers and refresh every few minutes, so hit reload for a fresh one."
+        kicker="TD · Traffic snapshots · ~1,000 CCTV"
+        title="CCTV stills"
+        blurb="Roadside camera stills from major roads. Frames sit on TD servers and refresh every few minutes."
         right={<span className="flex items-center gap-3"><FeedNote updatedAt={poll.updatedAt} label="STILLS" />
-          <button onClick={onBust} className="chip px-3 py-1.5 text-xs text-vms-300 hover:bg-vms-400/10">Reload frames</button></span>}
+          <button onClick={onBust} className="rounded-lg border border-hairline px-3 py-1.5 text-xs text-accent transition hover:bg-wash">Reload frames</button></span>}
       />
       {poll.error && <PanelError message={poll.error} onRetry={poll.refresh} />}
       {poll.loading && !poll.data ? <Skeleton rows={4} /> : (
         <>
-          <div className="mb-4 flex flex-wrap gap-3">
+          <div className="mb-5 flex flex-wrap gap-3">
             <Field label="Region">
               <select value={region} onChange={(e) => { setRegion(e.target.value); setDistrict("all"); setPage(0); }} className={inputCls}>
                 <option value="all">All regions</option>
@@ -68,36 +68,36 @@ export function CamerasPanel({ poll, bustToken, onBust }: {
               <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="e.g. Nathan Road, tunnel, H210F…" className={inputCls} />
             </Field>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-5 gap-y-6 sm:grid-cols-3 lg:grid-cols-4">
             {view.map((c) => (
-              <button key={c.key} onClick={() => setFocus(c)} className="card group overflow-hidden text-left transition hover:border-vms-400/40">
-                <div className="relative aspect-[4/3] bg-ink-950">
+              <button key={c.key} onClick={() => setFocus(c)} className="group text-left">
+                <div className="overflow-hidden rounded-lg border border-hairline bg-wash">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={bust(c.url, bustToken)} alt={c.description} loading="lazy"
-                    className="h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.25"; }} />
-                  <span className="font-gmono absolute left-1.5 top-1.5 rounded-[3px] bg-black/75 px-1.5 py-0.5 text-[10px] text-vms-300">{c.key}</span>
+                    className="aspect-[4/3] h-full w-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.25"; }} />
                 </div>
-                <div className="truncate px-2.5 py-2 text-[11px] text-stone-300 group-hover:text-white">{c.description}</div>
+                <div className="mt-1.5 truncate text-[13px] leading-snug text-ink">{c.description}</div>
+                <div className="type-data text-muted">{c.key}</div>
               </button>
             ))}
           </div>
-          {list.length === 0 && <div className="card mt-2 p-6 text-center text-sm text-stone-400">No cameras match.</div>}
-          <div className="mt-4 flex items-center justify-center gap-3 text-sm">
-            <button disabled={page === 0} onClick={() => setPage(page - 1)} className="chip px-3 py-1.5 text-xs disabled:opacity-40">← Prev</button>
-            <span className="font-gmono text-xs text-stone-400">Page {page + 1} / {pages}</span>
-            <button disabled={page + 1 >= pages} onClick={() => setPage(page + 1)} className="chip px-3 py-1.5 text-xs disabled:opacity-40">Next →</button>
+          {list.length === 0 && <p className="mt-2 border-y border-hairline py-8 text-center text-sm text-muted">No cameras match.</p>}
+          <div className="mt-6 flex items-center justify-center gap-3 text-sm">
+            <button disabled={page === 0} onClick={() => setPage(page - 1)} className="rounded-lg border border-hairline px-3 py-1.5 text-xs text-ink disabled:opacity-40">← Prev</button>
+            <span className="type-data text-muted">Page {page + 1} / {pages}</span>
+            <button disabled={page + 1 >= pages} onClick={() => setPage(page + 1)} className="rounded-lg border border-hairline px-3 py-1.5 text-xs text-ink disabled:opacity-40">Next →</button>
           </div>
         </>
       )}
       {focus && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 p-4" onClick={() => setFocus(null)}>
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 p-4" onClick={() => setFocus(null)}>
           <div className="card w-full max-w-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={bust(focus.url, bustToken)} alt={focus.description} className="max-h-[60vh] w-full bg-black object-contain" />
-            <div className="flex flex-wrap items-center gap-2 p-4">
-              <span className="font-gmono text-xs text-vms-300">{focus.key}</span>
-              <span className="text-sm font-semibold text-white">{focus.description}</span>
-              <span className="ml-auto text-[11px] text-stone-500">{focus.region} · {focus.district} · {focus.lat.toFixed(4)}, {focus.lng.toFixed(4)}</span>
+            <img src={bust(focus.url, bustToken)} alt={focus.description} className="max-h-[60vh] w-full bg-wash object-contain" />
+            <div className="flex flex-wrap items-baseline gap-2 px-5 py-4">
+              <span className="type-data text-accent">{focus.key}</span>
+              <span className="text-sm font-semibold text-ink">{focus.description}</span>
+              <span className="type-data ml-auto text-muted">{focus.region} · {focus.district} · {focus.lat.toFixed(4)}, {focus.lng.toFixed(4)}</span>
             </div>
           </div>
         </div>
@@ -141,28 +141,20 @@ export function DetectorsPanel({ poll }: { poll: PollState<DetectorPayload> }) {
     <section>
       <SectionHead
         kicker="TD · Detector network 偵測器"
-        title="Speeds on major roads 主要道路車速"
-        blurb="Volume-weighted speeds from around 800 road detectors, matched to road names. The bands are our call, congested under 25 km/h or occupancy over 50%. The raw numbers are TD's."
+        title="Speeds on major roads"
+        blurb="Volume-weighted speeds from around 800 road detectors, matched to road names. Congested under 25 km/h or occupancy over 50%."
         right={<FeedNote updatedAt={poll.updatedAt} label="LIVE" />}
       />
       {poll.error && <PanelError message={poll.error} onRetry={poll.refresh} />}
       {poll.loading && !poll.data ? <Skeleton rows={4} /> : poll.data && (
         <>
-          <div className="mb-2 flex items-center gap-2">
-            {(["congested", "slow", "smooth"] as const).map((s) => (
-              <div key={s} className="h-2.5 rounded-full" style={{
-                width: `${Math.max(2, (dist[s] / Math.max(1, points.length)) * 100)}%`,
-                background: s === "congested" ? "#ef4444" : s === "slow" ? "#f59e0b" : "#22c55e",
-              }} title={`${s}: ${dist[s]}`} />
-            ))}
+          <div className="type-data mb-5 flex flex-wrap gap-x-5 gap-y-1 text-muted">
+            <span><span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-bad align-middle" />{dist.congested} congested</span>
+            <span><span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-warn align-middle" />{dist.slow} slow</span>
+            <span><span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-good align-middle" />{dist.smooth} smooth</span>
+            <span className="ml-auto text-muted">window {poll.data.window.date} {poll.data.window.from}–{poll.data.window.to} HKT</span>
           </div>
-          <div className="font-gmono mb-4 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-stone-500">
-            <span><span className="text-bad-400">■</span> {dist.congested} congested</span>
-            <span><span className="text-slow-400">■</span> {dist.slow} slow</span>
-            <span><span className="text-go-400">■</span> {dist.smooth} smooth</span>
-            <span className="ml-auto">window {poll.data.window.date} {poll.data.window.from}–{poll.data.window.to} HKT</span>
-          </div>
-          <div className="mb-4 flex flex-wrap gap-3">
+          <div className="mb-5 flex flex-wrap gap-3">
             <Field label="Search road / district" grow>
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. Gloucester, Tolo, Tsing Yi…" className={inputCls} />
             </Field>
@@ -175,36 +167,36 @@ export function DetectorsPanel({ poll }: { poll: PollState<DetectorPayload> }) {
               </select>
             </Field>
           </div>
-          <div className="card overflow-hidden">
-            <table className="w-full text-left text-[13px]">
+          <div className="overflow-x-auto border-t border-hairline">
+            <table className="w-full text-left text-[14px]">
               <thead>
-                <tr className="font-gmono border-b border-line text-[10px] uppercase tracking-[0.15em] text-stone-500">
-                  <th className="px-4 py-2.5">Road / detector</th>
-                  <th className="hidden px-2 py-2.5 sm:table-cell">District</th>
-                  <th className="px-2 py-2.5 text-right">Speed</th>
-                  <th className="hidden px-2 py-2.5 text-right md:table-cell">Volume</th>
-                  <th className="hidden px-2 py-2.5 text-right md:table-cell">Occup.</th>
-                  <th className="px-4 py-2.5 text-right">Status</th>
+                <tr className="type-eyebrow border-b border-hairline text-muted">
+                  <th className="py-2.5 pr-2 font-normal">Road / detector</th>
+                  <th className="hidden px-2 py-2.5 font-normal sm:table-cell">District</th>
+                  <th className="px-2 py-2.5 text-right font-normal">Speed</th>
+                  <th className="hidden px-2 py-2.5 text-right font-normal md:table-cell">Volume</th>
+                  <th className="hidden px-2 py-2.5 text-right font-normal md:table-cell">Occup.</th>
+                  <th className="py-2.5 pl-2 text-right font-normal">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {slowest.map((p) => (
-                  <tr key={p.id} className="border-b border-line/50 last:border-0 hover:bg-white/[0.02]">
-                    <td className="px-4 py-2.5">
-                      <div className="truncate font-medium text-stone-100">{p.road}</div>
-                      <div className="font-gmono text-[10px] text-stone-500">{p.id} · {p.lanes} lanes{p.direction ? ` · ${p.direction}` : ""}</div>
+                  <tr key={p.id} className="row-hover border-b border-hairline">
+                    <td className="py-2.5 pr-2">
+                      <div className="font-medium text-ink">{p.road}</div>
+                      <div className="type-data text-muted">{p.id} · {p.lanes} lanes{p.direction ? ` · ${p.direction}` : ""}</div>
                     </td>
-                    <td className="hidden px-2 py-2.5 text-stone-400 sm:table-cell">{p.district}</td>
-                    <td className="font-gmono px-2 py-2.5 text-right font-bold text-white">{p.avgSpeed}<span className="text-[10px] font-normal text-stone-500"> km/h</span></td>
-                    <td className="font-gmono hidden px-2 py-2.5 text-right text-stone-300 md:table-cell">{p.volume}<span className="text-[10px] text-stone-500">/30s</span></td>
-                    <td className="font-gmono hidden px-2 py-2.5 text-right text-stone-300 md:table-cell">{p.maxOcc}%</td>
-                    <td className="px-4 py-2.5 text-right"><ToneBadge tone={STATUS_TONE[p.status]}>{p.status}</ToneBadge></td>
+                    <td className="hidden px-2 py-2.5 text-muted sm:table-cell">{p.district}</td>
+                    <td className="type-data px-2 py-2.5 text-left text-[15px] font-medium tabular-nums text-ink">{p.avgSpeed}<span className="ml-0.5 text-[11px] font-normal text-muted">km/h</span></td>
+                    <td className="type-data hidden px-2 py-2.5 text-right text-muted md:table-cell">{p.volume}</td>
+                    <td className="type-data hidden px-2 py-2.5 text-right text-muted md:table-cell">{p.maxOcc}%</td>
+                    <td className="py-2.5 pl-2 text-right"><StatusLine tone={STATUS_TONE[p.status]}>{p.status}</StatusLine></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="mt-2 text-[11px] text-stone-600">Showing slowest {slowest.length} of {points.length} detectors.</p>
+          <p className="type-data mt-2 text-muted">Showing slowest {slowest.length} of {points.length} detectors.</p>
         </>
       )}
     </section>

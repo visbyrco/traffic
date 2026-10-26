@@ -1,172 +1,277 @@
 @import "tailwindcss";
 
-@theme {
-  --font-display: var(--font-display), "Noto Sans HK", "PingFang HK", "Microsoft JhengHei", sans-serif;
-  --font-body: var(--font-body), system-ui, "Noto Sans HK", "PingFang HK", "Microsoft JhengHei", sans-serif;
-  --font-mono2: var(--font-gmono), ui-monospace, "SF Mono", monospace;
+@custom-variant dark (&:where(.dark, .dark *));
 
-  /* asphalt, not navy */
-  --color-ink-950: #0b0d0b;
-  --color-ink-900: #111411;
-  --color-ink-850: #151915;
-  --color-ink-800: #1c211c;
-  --color-ink-700: #2a302a;
+:root {
+  color-scheme: light;
+  --vis-bg: #f6f7f7;
+  --vis-ink: #171b1c;
+  --vis-muted: #576162;
+  --vis-faint: #8a9596;
+  --vis-hairline: #dde2e2;
+  --vis-wash: #eff1f1;
+  --vis-card: #ffffff;
+  --vis-accent: #0d4a50;
+  --vis-accent-strong: #0a3c41;
+  --vis-on-accent: #f2f7f7;
+  --vis-good: #18794e;
+  --vis-warn: #8a5a00;
+  --vis-bad: #b3261e;
+  --vis-good-bg: #e4f2e9;
+  --vis-warn-bg: #fbf0d9;
+  --vis-bad-bg: #f9e4e2;
+}
 
-  --color-line: rgba(231, 229, 228, 0.13);
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --vis-bg: #121515;
+    --vis-ink: #e4e8e8;
+    --vis-muted: #9aa5a5;
+    --vis-faint: #6b7677;
+    --vis-hairline: #262b2b;
+    --vis-wash: #181c1c;
+    --vis-card: #171b1b;
+    --vis-accent: #8fd2d6;
+    --vis-accent-strong: #b8e2e5;
+    --vis-on-accent: #0d282a;
+    --vis-good: #6fce97;
+    --vis-warn: #e5b45a;
+    --vis-bad: #ef8f88;
+    --vis-good-bg: rgba(111, 206, 151, 0.12);
+    --vis-warn-bg: rgba(229, 180, 90, 0.12);
+    --vis-bad-bg: rgba(239, 143, 136, 0.12);
+  }
+}
 
-  /* traffic-light status, kept literal */
-  --color-go-400: #4ade80;
-  --color-go-500: #22c55e;
-  --color-slow-400: #fbbf24;
-  --color-slow-500: #f59e0b;
-  --color-bad-400: #f87171;
-  --color-bad-500: #ef4444;
+.dark {
+  color-scheme: dark;
+  --vis-bg: #121515;
+  --vis-ink: #e4e8e8;
+  --vis-muted: #9aa5a5;
+  --vis-faint: #6b7677;
+  --vis-hairline: #262b2b;
+  --vis-wash: #181c1c;
+  --vis-card: #171b1b;
+  --vis-accent: #8fd2d6;
+  --vis-accent-strong: #b8e2e5;
+  --vis-on-accent: #0d282a;
+  --vis-good: #6fce97;
+  --vis-warn: #e5b45a;
+  --vis-bad: #ef8f88;
+  --vis-good-bg: rgba(111, 206, 151, 0.12);
+  --vis-warn-bg: rgba(229, 180, 90, 0.12);
+  --vis-bad-bg: rgba(239, 143, 136, 0.12);
+}
 
-  /* VMS amber: dot-matrix boards, warnings, focus */
-  --color-vms-300: #ffd166;
-  --color-vms-400: #ffb000;
+@theme inline {
+  --color-background: var(--vis-bg);
+  --color-ink: var(--vis-ink);
+  --color-muted: var(--vis-muted);
+  --color-faint: var(--vis-faint);
+  --color-hairline: var(--vis-hairline);
+  --color-wash: var(--vis-wash);
+  --color-card: var(--vis-card);
+  --color-accent: var(--vis-accent);
+  --color-accent-strong: var(--vis-accent-strong);
+  --color-on-accent: var(--vis-on-accent);
+  --color-good: var(--vis-good);
+  --color-warn: var(--vis-warn);
+  --color-bad: var(--vis-bad);
 
-  /* TD direction-sign green */
-  --color-sign-500: #159a52;
-  --color-sign-600: #0b6e3c;
-  --color-sign-700: #084a29;
+  --font-display: var(--font-display), "Inter Tight", system-ui, sans-serif;
+  --font-body: var(--font-display), "Inter Tight", system-ui, sans-serif;
+  --font-gmono: var(--font-gmono), ui-monospace, "SF Mono", monospace;
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
 }
 
 body {
-  background-color: #0b0d0b;
-  background-image: repeating-linear-gradient(
-    0deg,
-    rgba(255, 255, 255, 0.014) 0 1px,
-    transparent 1px 3px
-  );
-  color: #e7e5e4;
-  font-family: var(--font-body);
+  background-color: var(--vis-bg);
+  color: var(--vis-ink);
+  font-family: var(--font-display), "Inter Tight", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: #ffb000;
-  color: #000;
+  background: var(--vis-accent);
+  color: var(--vis-on-accent);
 }
 
 :focus-visible {
-  outline: 2px solid #ffb000;
+  outline: 2px solid var(--vis-accent);
   outline-offset: 2px;
 }
 
+/* Visbyr type scale */
 .font-display {
-  font-family: var(--font-display);
-  letter-spacing: 0.02em;
+  font-family: var(--font-display), "Inter Tight", system-ui, sans-serif;
 }
+
 .font-gmono {
-  font-family: var(--font-mono2);
+  font-family: var(--font-gmono), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
 }
 
-/* flat ledger panel. No gradients, no blur, small radius. */
+.type-display {
+  font-family: var(--font-display), "Inter Tight", system-ui, sans-serif;
+  font-weight: 600;
+  font-size: clamp(2.25rem, 6vw, 4.25rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.type-section {
+  font-family: var(--font-display), "Inter Tight", system-ui, sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.type-eyebrow {
+  font-family: var(--font-gmono), ui-monospace, monospace;
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.type-data {
+  font-family: var(--font-gmono), ui-monospace, monospace;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* Ledger: the default Visbyr container. Flat, hairline-divided, no card chrome. */
+.ledger {
+  background: var(--vis-card);
+  border: 1px solid var(--vis-hairline);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ledger-row {
+  border-bottom: 1px solid var(--vis-hairline);
+}
+
+.ledger-row:last-child {
+  border-bottom: 0;
+}
+
+.row-hover {
+  transition: background 0.15s ease;
+}
+
+.row-hover:hover {
+  background: var(--vis-wash);
+}
+
+/* One elevated surface per view at most. Kept for map + focus states. */
 .card {
-  background: #131613;
-  border: 1px solid var(--color-line);
-  border-radius: 8px;
+  background: var(--vis-card);
+  border: 1px solid var(--vis-hairline);
+  border-radius: 10px;
 }
 
-/* square tag, not a pill */
-.chip {
-  border: 1px solid var(--color-line);
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.02);
+/* Quiet inline tag. Replaces chip spam. */
+.tag {
+  font-family: var(--font-gmono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--vis-muted);
 }
 
-/* thin square scrollbars */
+/* Status dot + label. No pill backgrounds. */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+/* Thin scrollbars matched to hairline */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2a302a transparent;
+  scrollbar-color: var(--vis-hairline) transparent;
 }
+
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
+
 *::-webkit-scrollbar-thumb {
-  background: #2a302a;
-  border-radius: 2px;
+  background: var(--vis-hairline);
+  border-radius: 4px;
 }
 
-/* LED blink, like a roadside board. No soft pulse. */
-@keyframes led-blink {
-  0%, 55% { opacity: 1; }
-  56%, 100% { opacity: 0.2; }
-}
-.led {
-  animation: led-blink 1.6s steps(1) infinite;
-}
-
-@keyframes rise {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.rise {
-  animation: rise 0.35s ease both;
-}
-.rise-1 { animation-delay: 0.05s; }
-.rise-2 { animation-delay: 0.12s; }
-.rise-3 { animation-delay: 0.19s; }
-.rise-4 { animation-delay: 0.26s; }
-
-/* incident ticker */
-@keyframes ticker-x {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-.ticker-track {
-  animation: ticker-x 60s linear infinite;
-}
-.ticker-track:hover {
-  animation-play-state: paused;
-}
-
-/* maplibre dark chrome, matched to asphalt */
+/* maplibre chrome, matched to Visbyr */
 .maplibregl-canvas-container {
-  border-radius: 6px;
+  border-radius: 8px;
 }
+
 .maplibregl-popup-content {
-  background: #141714;
-  color: #e7e5e4;
-  border: 1px solid rgba(231, 229, 228, 0.2);
-  border-radius: 6px;
+  background: var(--vis-card);
+  color: var(--vis-ink);
+  border: 1px solid var(--vis-hairline);
+  border-radius: 8px;
   padding: 10px 14px;
   line-height: 1.45;
   font-size: 12px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
-}
-.maplibregl-popup-tip {
-  border-top-color: #141714 !important;
-  border-bottom-color: #141714 !important;
-}
-.maplibregl-popup-close-button {
-  color: #a8a29e;
-  padding: 2px 8px;
-}
-.maplibregl-ctrl-group {
-  background: #141714 !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
-}
-.maplibregl-ctrl-group button {
-  background: transparent !important;
-}
-.maplibregl-ctrl-group button span {
-  filter: invert(0.8);
-}
-.maplibregl-ctrl-attrib {
-  background: rgba(11, 13, 11, 0.75) !important;
-  font-size: 10px !important;
-}
-.maplibregl-ctrl-attrib a {
-  color: #a8a29e !important;
+  box-shadow: 0 8px 30px rgba(23, 27, 28, 0.14);
 }
 
-input, select {
+.maplibregl-popup-tip {
+  border-top-color: var(--vis-card) !important;
+  border-bottom-color: var(--vis-card) !important;
+}
+
+.maplibregl-popup-close-button {
+  color: var(--vis-muted);
+  padding: 2px 8px;
+}
+
+.maplibregl-ctrl-group {
+  background: var(--vis-card) !important;
+  border: 1px solid var(--vis-hairline) !important;
+  box-shadow: 0 4px 16px rgba(23, 27, 28, 0.1) !important;
+}
+
+.maplibregl-ctrl-attrib {
+  background: color-mix(in srgb, var(--vis-bg) 80%, transparent) !important;
+  font-size: 10px !important;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--vis-muted) !important;
+}
+
+input,
+select {
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  input,
+  select {
+    color-scheme: dark;
+  }
+}
+
+.dark input,
+.dark select {
   color-scheme: dark;
 }

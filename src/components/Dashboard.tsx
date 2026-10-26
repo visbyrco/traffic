@@ -7,29 +7,43 @@ import { IncidentsPanel, JourneyPanel } from "./panels-traffic";
 import { CamerasPanel, DetectorsPanel, type DetectorPoint } from "./panels-roads";
 import { BusesPanel, ParkingPanel, RoadworksPanel } from "./panels-city";
 import type { Camera, CarPark, Roadwork } from "@/lib/td";
-import { FeedNote, ToneBadge, ago, usePoll } from "./ui";
+import { FeedNote, StatusLine, ago, usePoll } from "./ui";
 
 const TrafficMap = dynamic(() => import("./TrafficMap"), {
   ssr: false,
-  loading: () => <div className="card flex h-[62vh] min-h-[420px] items-center justify-center text-sm text-stone-500">Loading map…</div>,
+  loading: () => <div className="ledger flex h-[62vh] min-h-[420px] items-center justify-center text-sm text-muted">Loading map</div>,
 });
 
 const TABS = [
-  { id: "overview", label: "Overview", zh: "總覽" },
-  { id: "incidents", label: "Incidents", zh: "事故" },
-  { id: "journey", label: "Journey times", zh: "行車時間" },
-  { id: "cameras", label: "Cameras", zh: "交通快拍" },
-  { id: "speeds", label: "Speed map", zh: "車速圖" },
-  { id: "parking", label: "Parking", zh: "泊車" },
-  { id: "roadworks", label: "Roadworks", zh: "道路工程" },
-  { id: "buses", label: "Buses", zh: "巴士" },
-  { id: "map", label: "Live map", zh: "實時地圖" },
+  { id: "overview", label: "Overview" },
+  { id: "incidents", label: "Incidents" },
+  { id: "journey", label: "Journey times" },
+  { id: "cameras", label: "Cameras" },
+  { id: "speeds", label: "Speed map" },
+  { id: "parking", label: "Parking" },
+  { id: "roadworks", label: "Roadworks" },
+  { id: "buses", label: "Buses" },
+  { id: "map", label: "Live map" },
 ] as const;
 
 type Tab = (typeof TABS)[number]["id"];
 
 function hktClock(): string {
   return new Date().toLocaleString("en-HK", { timeZone: "Asia/Hong_Kong", hour12: false, weekday: "short", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function Clock() {
+  const [clock, setClock] = useState(hktClock);
+  useEffect(() => {
+    const t = setInterval(() => setClock(hktClock()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <span className="type-data shrink-0 text-muted">
+      <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-good align-middle" aria-hidden />
+      {clock} HKT
+    </span>
+  );
 }
 
 const PANELS = [
@@ -42,8 +56,8 @@ const PANELS = [
 
 export default function Dashboard() {
   const [tab, setTab] = useState<Tab>("overview");
+  // Ticks every 30s for relative times. The HKT clock above keeps its own 1s timer.
   const [now, setNow] = useState(() => Date.now());
-  const [clock, setClock] = useState(hktClock);
   // Cache-bust token for CCTV stills. Starts at a constant so SSR and the
   // first client render agree; "Reload frames" bumps it to Date.now().
   const [bustToken, setBustToken] = useState(1);
@@ -56,10 +70,7 @@ export default function Dashboard() {
   const roadworks = usePoll<{ roadworks: Roadwork[]; count: number }>("/api/roadworks", 300000);
 
   useEffect(() => {
-    const t = setInterval(() => {
-      setNow(Date.now());
-      setClock(hktClock());
-    }, 1000);
+    const t = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(t);
   }, []);
 
@@ -79,51 +90,40 @@ export default function Dashboard() {
     };
   }, [incidents.data, detectors.data, journey.data, parking.data]);
 
-  const tickerItems = useMemo(() => (incidents.data?.incidents ?? []).slice(0, 12), [incidents.data]);
+  const latestIncident = incidents.data?.incidents?.[0];
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-3 pb-16 sm:px-5">
-      {/* header: direction-sign board */}
-      <header className="pt-5">
-        <div className="overflow-hidden rounded-md border border-white/20 bg-sign-700">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3.5">
-            <div className="font-display flex h-11 w-11 shrink-0 items-center justify-center rounded-[4px] border-2 border-white text-lg font-bold text-white">HK</div>
-            <div className="min-w-0">
-              <h1 className="font-display text-[26px] font-semibold uppercase leading-none tracking-wide text-white">Visbyr Traffic <span className="whitespace-nowrap text-white/75">香港即時交通</span></h1>
-              <p className="font-gmono mt-1 text-[11px] uppercase tracking-[0.18em] text-white/65">Live traffic from Transport Department open data · data.gov.hk</p>
-            </div>
-            <div className="ml-auto flex items-center gap-2.5 rounded-[4px] bg-black px-3 py-2">
-              <span className="led inline-block h-2 w-2 bg-vms-400" />
-              <span className="font-gmono text-sm font-medium text-vms-300">{clock} HKT</span>
-            </div>
-          </div>
-          <div className="flex flex-col gap-[2px] bg-black/30 px-4 py-[5px]" aria-hidden>
-            <div className="h-[2px] bg-vms-400/90" />
-            <div className="h-[2px] bg-vms-400/90" />
-          </div>
-        </div>
+    <div className="mx-auto w-full max-w-6xl px-5 pb-16 sm:px-8">
+      {/* compact Visbyr top bar */}
+      <header className="flex items-center gap-3 border-b border-hairline py-4">
+        <h1 className="min-w-0 truncate text-[17px] font-semibold tracking-[-0.01em] text-ink">
+          Visbyr Traffic <span className="font-normal text-muted">香港即時交通</span>
+        </h1>
+        <span className="type-eyebrow hidden text-muted md:inline">Live TD open data</span>
+        <span className="ml-auto"><Clock /></span>
       </header>
 
-      {/* ticker: VMS board */}
-      {tickerItems.length > 0 && (
-        <button onClick={() => setTab("incidents")} className="mb-4 mt-4 flex w-full items-center gap-3 overflow-hidden rounded-md border border-line bg-black py-2.5 text-left">
-          <span className="font-gmono flex shrink-0 items-center gap-1.5 pl-3 text-[10px] uppercase tracking-[0.2em]">
-            <span className="bg-bad-500 px-1.5 py-0.5 font-bold text-white">事故</span>
-            <span className="text-vms-300">Incident wire</span>
+      {/* alert strip: latest incident, static */}
+      {latestIncident && (
+        <button
+          onClick={() => setTab("incidents")}
+          className="row-hover mt-4 flex w-full items-center gap-3 border-b border-hairline pb-3 text-left"
+        >
+          <StatusLine tone={/NEW/.test(latestIncident.status.toUpperCase()) ? "red" : "amber"}>
+            {/NEW/.test(latestIncident.status.toUpperCase()) ? "New" : latestIncident.status || "Latest"}
+          </StatusLine>
+          <span className="min-w-0 flex-1 truncate text-sm text-ink">
+            {latestIncident.location || latestIncident.heading}
+            {latestIncident.direction ? ` → ${latestIncident.direction}` : ""}
           </span>
-          <span className="relative flex-1 overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_4%,#000_96%,transparent)]">
-            <span className="ticker-track font-gmono inline-flex gap-10 whitespace-nowrap pr-10 text-xs text-vms-300/90">
-              {[...tickerItems, ...tickerItems].map((i, k) => (
-                <span key={k}>▸ {i.location || i.heading}{i.direction ? ` → ${i.direction}` : ""}</span>
-              ))}
-            </span>
-          </span>
+          <span className="type-data shrink-0 text-muted">{ago(latestIncident.announcedAt, now)}</span>
+          <span className="shrink-0 text-sm text-faint">→</span>
         </button>
       )}
 
-      {/* tabs: ledger */}
-      <nav className="sticky top-0 z-40 -mx-3 mb-5 overflow-x-auto border-b border-line bg-ink-950/95 px-3 backdrop-blur sm:-mx-5 sm:px-5">
-        <div className="flex gap-5">
+      {/* tabs: plain text links */}
+      <nav className="sticky top-0 z-40 -mx-5 mb-8 overflow-x-auto border-b border-hairline bg-background/95 px-5 backdrop-blur sm:-mx-8 sm:px-8">
+        <div className="flex gap-6">
           {TABS.map((t) => {
             const badge =
               t.id === "incidents" && incidents.data ? incidents.data.count :
@@ -132,9 +132,13 @@ export default function Dashboard() {
             const active = tab === t.id;
             return (
               <button key={t.id} onClick={() => setTab(t.id)}
-                className={`font-display shrink-0 border-b-2 px-0.5 pb-2 pt-3 text-[17px] font-semibold uppercase tracking-wide transition ${active ? "border-vms-400 text-stone-100" : "border-transparent text-stone-500 hover:text-stone-200"}`}>
-                {t.label} <span className={`text-[13px] font-medium ${active ? "text-vms-300" : "text-stone-600"}`}>{t.zh}</span>
-                {badge != null && <span className="font-gmono ml-1.5 text-[11px] opacity-70">{badge}</span>}
+                className={`min-h-11 shrink-0 border-b-2 px-0.5 pb-2 pt-3 text-[15px] transition ${
+                  active
+                    ? "border-accent font-semibold text-ink"
+                    : "border-transparent font-normal text-muted hover:text-ink"
+                }`}>
+                {t.label}
+                {badge != null && <span className="type-data ml-1.5 opacity-70">{badge}</span>}
               </button>
             );
           })}
@@ -142,83 +146,90 @@ export default function Dashboard() {
       </nav>
 
       {tab === "overview" && (
-        <div className="space-y-5">
-          {/* KPIs */}
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-            <Kpi label="Active incidents 事故" value={kpis.active} sub="TD special traffic news" tone={kpis.active ? "red" : "green"} onClick={() => setTab("incidents")} />
-            <Kpi label="Slow detectors 擠塞" value={kpis.slow} sub={kpis.slowTotal ? `of ${kpis.slowTotal} monitored` : "detector network"} tone={kpis.slow ? "amber" : "green"} onClick={() => setTab("speeds")} />
-            <Kpi label="Worst harbour crossing 過海" value={kpis.worst ? `${kpis.worst.minutes} min` : null} sub={kpis.worst ? `${kpis.worst.origin} → ${kpis.worst.destination}` : "journey indicators"} tone="signal" onClick={() => setTab("journey")} />
-            <Kpi label="Car parks full 已滿" value={parking.data ? kpis.full : null} sub="private-car spaces" tone={kpis.full ? "amber" : "green"} onClick={() => setTab("parking")} />
-          </div>
+        <div className="space-y-12">
+          {/* network at a glance: single ledger, four rows */}
+          <section>
+            <div className="type-eyebrow mb-3 text-muted">Network at a glance</div>
+            <div className="ledger divide-y divide-hairline">
+              <KpiRow label="Active incidents" sub="TD special traffic news" value={kpis.active != null ? String(kpis.active) : "…"} tone={kpis.active ? "red" : "green"} onClick={() => setTab("incidents")} />
+              <KpiRow label="Slow detectors" sub={kpis.slowTotal ? `of ${kpis.slowTotal} monitored` : "Detector network"} value={kpis.slowTotal ? `${kpis.slow} / ${kpis.slowTotal}` : kpis.slow ? String(kpis.slow) : "…"} tone={kpis.slow ? "amber" : "green"} onClick={() => setTab("speeds")} />
+              <KpiRow label="Worst harbour crossing" sub={kpis.worst ? `${kpis.worst.origin} → ${kpis.worst.destination}` : "Journey indicators"} value={kpis.worst ? `${kpis.worst.minutes} min` : "…"} tone={kpis.worst && kpis.worst.minutes >= 20 ? "red" : kpis.worst ? "amber" : "green"} onClick={() => setTab("journey")} />
+              <KpiRow label="Car parks full" sub="Private-car spaces" value={parking.data ? String(kpis.full) : "…"} tone={kpis.full ? "amber" : "green"} onClick={() => setTab("parking")} />
+            </div>
+          </section>
 
-          {/* latest + slowest */}
-          <div className="grid gap-3 lg:grid-cols-2">
-            <div className="card p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-display text-[19px] font-semibold uppercase tracking-wide text-stone-100">Latest on the wire <span className="text-stone-500">最新事故</span></h3>
-                <button onClick={() => setTab("incidents")} className="text-xs text-vms-300 hover:underline">View all →</button>
+          {/* what needs attention + slowest */}
+          <div className="grid gap-12 lg:grid-cols-2">
+            <section>
+              <div className="mb-3 flex min-h-11 items-center justify-between gap-3">
+                <h3 className="font-display text-xl font-semibold tracking-[-0.02em] text-ink">Latest on the wire</h3>
+                <button onClick={() => setTab("incidents")} className="min-h-11 text-sm text-accent hover:underline">View all</button>
               </div>
-              <div className="space-y-2.5">
+              <div className="border-t border-hairline">
                 {(incidents.data?.incidents ?? []).slice(0, 3).map((i) => (
-                  <div key={i.id} className="border-b border-line/50 pb-2.5 last:border-0 last:pb-0">
-                    <div className="flex items-center gap-2 text-[11px] text-stone-500">
-                      <ToneBadge tone={/NEW/.test(i.status.toUpperCase()) ? "red" : "amber"}>{i.status || "Notice"}</ToneBadge>
-                      <span className="font-gmono">{ago(i.announcedAt, now)}</span>
+                  <div key={i.id} className="border-b border-hairline py-3.5">
+                    <div className="flex items-center gap-2">
+                      <StatusLine tone={/NEW/.test(i.status.toUpperCase()) ? "red" : "amber"}>{i.status || "Notice"}</StatusLine>
+                      <span className="type-data ml-auto text-muted">{ago(i.announcedAt, now)}</span>
                     </div>
-                    <p className="mt-1 text-[13px] font-medium text-stone-100">{i.location || i.heading}{i.direction ? ` → ${i.direction}` : ""}</p>
-                    <p className="line-clamp-2 text-xs text-stone-400">{i.content}</p>
+                    <p className="mt-1.5 text-[15px] font-medium leading-snug text-ink">{i.location || i.heading}{i.direction ? ` → ${i.direction}` : ""}</p>
+                    <p className="line-clamp-2 text-sm leading-relaxed text-muted">{i.content}</p>
                   </div>
                 ))}
-                {!incidents.data && <p className="text-sm text-stone-500">Loading…</p>}
+                {!incidents.data && <p className="border-b border-hairline py-4 text-sm text-muted">Loading</p>}
               </div>
-            </div>
-            <div className="card p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="font-display text-[19px] font-semibold uppercase tracking-wide text-stone-100">Slowest detectors <span className="text-stone-500">最慢路段</span></h3>
-                <button onClick={() => setTab("speeds")} className="text-xs text-vms-300 hover:underline">Full table →</button>
+            </section>
+            <section>
+              <div className="mb-3 flex min-h-11 items-center justify-between gap-3">
+                <h3 className="font-display text-xl font-semibold tracking-[-0.02em] text-ink">Slowest detectors</h3>
+                <button onClick={() => setTab("speeds")} className="min-h-11 text-sm text-accent hover:underline">Full table</button>
               </div>
-              <div className="space-y-2">
+              <div className="border-t border-hairline">
                 {[...(detectors.data?.points ?? [])].sort((a, b) => a.avgSpeed - b.avgSpeed).slice(0, 5).map((p) => (
-                  <div key={p.id} className="flex items-center gap-3">
-                    <span className={`font-gmono w-16 shrink-0 text-right text-sm font-bold ${p.avgSpeed < 25 ? "text-bad-400" : p.avgSpeed < 50 ? "text-slow-400" : "text-go-400"}`}>{p.avgSpeed}</span>
+                  <div key={p.id} className="flex items-baseline gap-4 border-b border-hairline py-3">
+                    <span className="type-data w-24 shrink-0 text-[15px] font-medium tabular-nums text-ink">{p.avgSpeed}<span className="ml-1 text-[11px] font-normal text-muted">km/h</span></span>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13px] text-stone-200">{p.road}</div>
-                      <div className="h-1 overflow-hidden rounded-[2px] bg-white/5">
-                        <div className="h-full rounded" style={{ width: `${Math.min(100, (p.avgSpeed / 80) * 100)}%`, background: p.avgSpeed < 25 ? "#ef4444" : p.avgSpeed < 50 ? "#f59e0b" : "#22c55e" }} />
-                      </div>
+                      <div className="truncate text-[15px] text-ink">{p.road}</div>
+                      <div className="type-data truncate text-muted">{p.district} · {p.id}</div>
                     </div>
+                    <span className={`status-dot shrink-0 self-center ${p.avgSpeed < 25 ? "bg-bad" : p.avgSpeed < 50 ? "bg-warn" : "bg-good"}`} aria-hidden />
                   </div>
                 ))}
-                {!detectors.data && <p className="text-sm text-stone-500">Loading…</p>}
+                {!detectors.data && <p className="border-b border-hairline py-4 text-sm text-muted">Loading</p>}
               </div>
-            </div>
+            </section>
           </div>
 
-          {/* speed map panels: the gantry boards */}
-          <div className="card p-4">
-            <div className="mb-1 flex items-center justify-between">
-              <h3 className="font-display text-[19px] font-semibold uppercase tracking-wide text-stone-100">What the gantry signs say <span className="text-stone-500">新界顯示屏</span></h3>
+          {/* gantry boards: plain figures, black boards are the real VMS */}
+          <section>
+            <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="font-display text-xl font-semibold tracking-[-0.02em] text-ink">What the gantry signs say</h3>
               <FeedNote updatedAt={detectors.updatedAt} label="TD IMAGES" />
             </div>
-            <p className="mb-3 text-xs text-stone-500">The Sha Tin approach boards, pulled straight from TD&apos;s image feed.</p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            <p className="mb-4 text-sm text-muted">The Sha Tin approach boards, pulled straight from the TD image feed.</p>
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
               {PANELS.map((p) => (
-                <figure key={p.code} className="overflow-hidden rounded-[5px] border border-line bg-black">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`https://resource.data.one.gov.hk/td/jss/${p.code}.en.png?t=${bustToken}`} alt={p.label} loading="lazy" className="aspect-[4/5] w-full object-contain" />
-                  <figcaption className="px-2 py-1.5 text-[10px] leading-tight text-stone-400">{p.label}</figcaption>
+                <figure key={p.code}>
+                  <div className="overflow-hidden rounded-md border border-hairline bg-black">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`https://resource.data.one.gov.hk/td/jss/${p.code}.en.png?t=${bustToken}`} alt={p.label} loading="lazy" className="aspect-[4/5] w-full object-contain" />
+                  </div>
+                  <figcaption className="type-data mt-1.5 leading-snug text-muted">{p.label}</figcaption>
                 </figure>
               ))}
             </div>
-          </div>
+          </section>
 
-          {/* quick links */}
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-            <QuickGo label="CCTV stills" zh="交通快拍" desc="a thousand roadside cameras" onClick={() => setTab("cameras")} />
-            <QuickGo label="Car parks" zh="泊車" desc="live vacancies" onClick={() => setTab("parking")} />
-            <QuickGo label="Bus ETAs" zh="巴士" desc="KMB · Citybus · GMB" onClick={() => setTab("buses")} />
-            <QuickGo label="Live map" zh="地圖" desc="detectors and works" onClick={() => setTab("map")} />
-          </div>
+          {/* quick links: text rows, not cards */}
+          <section>
+            <div className="type-eyebrow mb-1 text-muted">Go deeper</div>
+            <div className="border-t border-hairline">
+              <QuickRow label="CCTV stills" desc="A thousand roadside cameras" onClick={() => setTab("cameras")} />
+              <QuickRow label="Car parks" desc="Live vacancies" onClick={() => setTab("parking")} />
+              <QuickRow label="Bus ETAs" desc="KMB · Citybus · GMB" onClick={() => setTab("buses")} />
+              <QuickRow label="Live map" desc="Detectors and works" onClick={() => setTab("map")} />
+            </div>
+          </section>
         </div>
       )}
 
@@ -227,7 +238,7 @@ export default function Dashboard() {
       {tab === "cameras" && <CamerasPanel poll={cameras} bustToken={bustToken} onBust={() => setBustToken(Date.now())} />}
       {tab === "speeds" && <DetectorsPanel poll={detectors} />}
       {tab === "parking" && <ParkingPanel poll={parking} now={now} />}
-      {tab === "roadworks" && <RoadworksPanel poll={roadworks} now={now} />}
+      {tab === "roadworks" && <RoadworksPanel poll={roadworks} />}
       {tab === "buses" && <BusesPanel now={now} />}
       {tab === "map" && (
         <section>
@@ -239,37 +250,37 @@ export default function Dashboard() {
               roadworks={roadworks.data?.roadworks ?? []}
             />
           </div>
-          <p className="mt-2 text-[11px] text-stone-600">Toggle layers top-left. Cameras and car parks are capped for performance; their tabs hold the full searchable lists.</p>
+          <p className="type-data mt-2 text-muted">Toggle layers top-left. Cameras and car parks are capped for performance; their tabs hold the full searchable lists.</p>
         </section>
       )}
     </div>
   );
 }
 
-function Kpi({ label, value, sub, tone, onClick }: {
-  label: string; value: number | string | null; sub: string;
+function KpiRow({ label, value, sub, tone, onClick }: {
+  label: string; value: string; sub: string;
   tone: "red" | "green" | "amber" | "signal"; onClick: () => void;
 }) {
-  const color = tone === "red" ? "text-bad-400" : tone === "amber" ? "text-slow-400" : tone === "signal" ? "text-vms-300" : "text-go-400";
-  const notch = tone === "red" ? "bg-bad-500" : tone === "amber" ? "bg-slow-500" : tone === "signal" ? "bg-vms-400" : "bg-go-500";
+  const dot = tone === "red" ? "bg-bad" : tone === "amber" ? "bg-warn" : tone === "signal" ? "bg-accent" : "bg-good";
   return (
-    <button onClick={onClick} className="card rise group overflow-hidden p-4 pt-0 text-left transition hover:border-stone-500/40">
-      <div className={`mb-3 h-[3px] -mx-4 ${notch}`} aria-hidden />
-      <div className="font-gmono text-[10px] uppercase tracking-[0.18em] text-stone-500">{label}</div>
-      <div className={`font-display mt-1 text-[34px] font-semibold leading-none ${color}`}>{value ?? "…"}</div>
-      <div className="mt-1.5 truncate text-[11px] text-stone-500 group-hover:text-vms-300">{sub} →</div>
+    <button onClick={onClick} className="row-hover group flex min-h-11 w-full items-center gap-4 px-4 py-3 text-left sm:px-5">
+      <span className={`status-dot ${dot}`} aria-hidden />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-medium text-ink">{label}</span>
+        <span className="type-data block truncate text-muted">{sub}</span>
+      </span>
+      <span className="font-display shrink-0 text-[26px] font-semibold tabular-nums leading-none tracking-[-0.02em] text-ink">{value}</span>
+      <span className="shrink-0 text-sm text-faint">→</span>
     </button>
   );
 }
 
-function QuickGo({ label, zh, desc, onClick }: { label: string; zh: string; desc: string; onClick: () => void }) {
+function QuickRow({ label, desc, onClick }: { label: string; desc: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="card group flex items-center justify-between gap-2 p-4 text-left transition hover:border-stone-500/40">
-      <span>
-        <span className="font-display block text-[20px] font-semibold uppercase leading-none tracking-wide text-stone-100">{label} <span className="text-[15px] text-stone-500">{zh}</span></span>
-        <span className="mt-1 block text-[11px] text-stone-500">{desc}</span>
-      </span>
-      <span className="font-gmono text-vms-300 transition group-hover:transtone-x-1">→</span>
+    <button onClick={onClick} className="row-hover group flex min-h-11 w-full items-center gap-3 border-b border-hairline py-2.5 text-left">
+      <span className="text-[15px] font-medium text-ink group-hover:text-accent">{label}</span>
+      <span className="type-data text-muted">{desc}</span>
+      <span className="ml-auto text-sm text-faint">→</span>
     </button>
   );
 }

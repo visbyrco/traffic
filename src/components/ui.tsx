@@ -74,20 +74,20 @@ export function ago(iso: string | null | undefined, now: number): string {
 /* ---------- building blocks ---------- */
 
 export const TONE = {
-  green: { text: "text-go-400", bg: "bg-go-500/15", border: "border-go-500/40", dot: "bg-go-400" },
-  amber: { text: "text-slow-400", bg: "bg-slow-500/15", border: "border-slow-500/40", dot: "bg-slow-400" },
-  red: { text: "text-bad-400", bg: "bg-bad-500/15", border: "border-bad-500/40", dot: "bg-bad-400" },
-  signal: { text: "text-vms-300", bg: "bg-vms-400/10", border: "border-vms-400/40", dot: "bg-vms-400" },
-  grey: { text: "text-stone-400", bg: "bg-stone-500/10", border: "border-stone-500/30", dot: "bg-stone-400" },
+  green: { text: "text-good", dot: "bg-good" },
+  amber: { text: "text-warn", dot: "bg-warn" },
+  red: { text: "text-bad", dot: "bg-bad" },
+  signal: { text: "text-accent", dot: "bg-accent" },
+  grey: { text: "text-muted", dot: "bg-faint" },
 } as const;
 
 export type Tone = keyof typeof TONE;
 
-export function ToneBadge({ tone, children }: { tone: Tone; children: React.ReactNode }) {
+export function StatusLine({ tone, children }: { tone: Tone; children: React.ReactNode }) {
   const t = TONE[tone];
   return (
-    <span className={`font-gmono inline-flex items-center gap-1.5 rounded-[3px] border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.12em] ${t.bg} ${t.border} ${t.text}`}>
-      <span className={`h-1.5 w-1.5 ${t.dot}`} />
+    <span className="type-eyebrow inline-flex items-center gap-1.5 text-muted">
+      <span className={`status-dot ${t.dot}`} aria-hidden />
       {children}
     </span>
   );
@@ -105,14 +105,11 @@ export function SectionHead({
   blurb?: string;
 }) {
   return (
-    <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <div className="font-gmono mb-1.5 flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-stone-400">
-          <span className="inline-block h-2 w-2 bg-vms-400" aria-hidden />
-          <span>{kicker}</span>
-        </div>
-        <h2 className="font-display text-[30px] font-semibold leading-none tracking-wide text-stone-100">{title}</h2>
-        {blurb && <p className="mt-1 max-w-2xl text-[13px] leading-relaxed text-stone-400">{blurb}</p>}
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0">
+        <div className="type-eyebrow mb-2 text-muted">{kicker}</div>
+        <h2 className="type-section text-ink text-balance">{title}</h2>
+        {blurb && <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted">{blurb}</p>}
       </div>
       {right && <div className="flex items-center gap-2">{right}</div>}
     </div>
@@ -121,9 +118,9 @@ export function SectionHead({
 
 export function FeedNote({ updatedAt, label }: { updatedAt: Date | null; label: string }) {
   return (
-    <span className="font-gmono inline-flex items-center gap-2 text-[11px] text-stone-500">
-      <span className="led inline-block h-1.5 w-1.5 bg-go-400" />
-      {label} · {updatedAt ? updatedAt.toLocaleTimeString("en-HK", { timeZone: "Asia/Hong_Kong", hour12: false }) : "connecting…"}
+    <span className="type-data inline-flex items-center gap-2 text-muted">
+      <span className="status-dot bg-good" aria-hidden />
+      {label} · {updatedAt ? updatedAt.toLocaleTimeString("en-HK", { timeZone: "Asia/Hong_Kong", hour12: false }) : "connecting"}
     </span>
   );
 }
@@ -131,29 +128,32 @@ export function FeedNote({ updatedAt, label }: { updatedAt: Date | null; label: 
 export function Field({ label, children, grow }: { label: string; children: React.ReactNode; grow?: boolean }) {
   return (
     <label className={`block ${grow ? "flex-1" : ""}`}>
-      <span className="font-gmono mb-1 block text-[10px] uppercase tracking-[0.2em] text-stone-500">{label}</span>
+      <span className="type-eyebrow mb-1.5 block text-muted">{label}</span>
       {children}
     </label>
   );
 }
 
 export const inputCls =
-  "w-full rounded-md border border-line bg-ink-900 px-3 py-2 text-sm text-stone-100 placeholder:text-stone-600 outline-none focus:border-vms-400/60 focus:ring-1 focus:ring-vms-400/30";
+  "min-h-9 w-full rounded-md border border-hairline bg-background px-3 py-2 text-sm text-ink placeholder:text-faint outline-none focus:border-ink";
 
 export function PanelError({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="card flex items-center justify-between gap-3 border-bad-500/30 p-4 text-sm text-stone-300">
-      <span><span className="text-bad-400 font-semibold">Feed down. </span>{message}</span>
-      <button onClick={onRetry} className="chip shrink-0 px-3 py-1 text-xs text-vms-300 hover:bg-vms-400/10">Retry</button>
+    <div className="ledger flex items-center justify-between gap-3 px-4 py-3 text-sm text-ink">
+      <span><span className="font-semibold text-bad">Feed down. </span><span className="text-muted">{message}</span></span>
+      <button onClick={onRetry} className="rounded-lg border border-hairline px-3 py-1.5 text-xs text-accent transition hover:bg-wash">Retry</button>
     </div>
   );
 }
 
 export function Skeleton({ rows = 4 }: { rows?: number }) {
   return (
-    <div className="space-y-2">
+    <div className="ledger divide-y divide-hairline">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="card h-16 animate-pulse" style={{ animationDelay: `${i * 90}ms` }} />
+        <div key={i} className="flex animate-pulse items-center gap-3 px-4 py-4">
+          <div className="h-2 w-2 rounded-full bg-wash" />
+          <div className="h-3 flex-1 rounded bg-wash" />
+        </div>
       ))}
     </div>
   );
