@@ -20,13 +20,21 @@ export interface Incident {
   id: string;
   number: string;
   heading: string;
+  headingTc: string;
   detail: string;
+  detailTc: string;
   location: string;
+  locationTc: string;
   direction: string;
+  directionTc: string;
   district: string;
+  districtTc: string;
   landmark: string;
+  landmarkTc: string;
   content: string;
+  contentTc: string;
   status: string;
+  statusTc: string;
   announcedAt: string;
 }
 
@@ -39,20 +47,34 @@ export function parseIncidents(xml: string): Incident[] {
   const out: Incident[] = [];
   for (const m of xml.matchAll(/<message>([\s\S]*?)<\/message>/g)) {
     const b = m[1];
+    // One TD feed carries both languages: _EN and _CN siblings.
+    const landmarkEn = tag(b, "NEAR_LANDMARK_EN");
+    const landmarkTc = tag(b, "NEAR_LANDMARK_CN");
     out.push({
       id: tag(b, "ID"),
       number: tag(b, "INCIDENT_NUMBER"),
       heading: tag(b, "INCIDENT_HEADING_EN") || "Traffic notice",
+      headingTc: tag(b, "INCIDENT_HEADING_CN"),
       detail: tag(b, "INCIDENT_DETAIL_EN"),
+      detailTc: tag(b, "INCIDENT_DETAIL_CN"),
       location: tag(b, "LOCATION_EN"),
+      locationTc: tag(b, "LOCATION_CN"),
       direction: tag(b, "DIRECTION_EN"),
+      directionTc: tag(b, "DIRECTION_CN"),
       district:
         tag(b, "DISTRICT_EN") ||
         tag(b, "NEAR_LANDMARK_EN") ||
         tag(b, "BETWEEN_LANDMARK_EN"),
-      landmark: tag(b, "NEAR_LANDMARK_EN"),
+      districtTc:
+        tag(b, "DISTRICT_CN") ||
+        tag(b, "NEAR_LANDMARK_CN") ||
+        tag(b, "BETWEEN_LANDMARK_CN"),
+      landmark: landmarkEn,
+      landmarkTc,
       content: tag(b, "CONTENT_EN"),
+      contentTc: tag(b, "CONTENT_CN"),
       status: tag(b, "INCIDENT_STATUS_EN"),
+      statusTc: tag(b, "INCIDENT_STATUS_CN"),
       announcedAt: tag(b, "ANNOUNCEMENT_DATE"),
     });
   }
@@ -176,6 +198,129 @@ export const COLOUR_LABEL: Record<number, { label: string; tone: string }> = {
   2: { label: "Slow", tone: "amber" },
   3: { label: "Congested", tone: "red" },
 };
+
+/* Traditional Chinese display names for the journey-time sign sites above.
+   The feed itself only carries site IDs, so these translations live here. */
+export const ORIGIN_NAMES_ZH: Record<string, string> = {
+  H1: "告士打道東行近稅務大樓",
+  H11: "東區走廊西行近麗景灣",
+  H2: "堅拿道天橋北行近香港仔隧道出口",
+  H3: "東區走廊西行近城市花園",
+  H4: "黃泥涌道北行近皇后大道東",
+  H5: "興發街北行近維多利亞公園",
+  H6: "淺水灣道北行近香島道",
+  H7: "黃竹坑道北行近香港鄉村俱樂部",
+  H8: "黃竹坑道東行近香港仔運動場",
+  H9: "鴨脷洲橋道北行近黃竹坑道",
+  K01: "渡船街南行近峻園",
+  K02: "加士居道東行近香港理工大學",
+  K03: "窩打老道南行近九龍醫院",
+  K04: "公主道南行近愛民邨",
+  K05: "啟福道北行近油站",
+  K06: "漆咸道南行近佛光街遊樂場",
+  K07: "西九龍公路西行近南昌站",
+  K08: "啟祥道西行近九龍灣消防局",
+  N01: "洪天路南行近洪志路交界",
+  N02: "朗天路南行",
+  N03: "元朗公路東行近十八鄉交匯處",
+  N05: "大埔道東行近廣福邨",
+  N06: "青沙公路西行近城門河道",
+  N07: "福民路北行近寶琳路",
+  N08: "寶順路南行近頌明苑",
+  N09: "環保大道西行近香港單車館",
+  N10: "寶康路南行近九巴將軍澳車廠",
+  N11: "寶邑路西行近調景嶺體育館",
+  N12: "寶順路南行近調景嶺體育館",
+  N13: "翠嶺路東行近調景嶺體育館",
+  SJ1: "大埔道南行近沙田馬場",
+  SJ2: "大老山公路南行近石門",
+  SJ3: "吐露港公路南行近科學園",
+  SJ4: "新田公路南行近錦繡花園",
+  SJ5: "屯門公路近曾咀",
+};
+
+export const DIR_NAMES_ZH: Record<string, string> = {
+  HKKL: "港島往九龍",
+  KLHK: "九龍往港島",
+  NTKL: "新界往九龍",
+  NTA: "新界往機場",
+  OTH: "其他路線",
+};
+
+export const DEST_NAMES_ZH: Record<string, string> = {
+  CH: "紅磡海底隧道",
+  EH: "東區海底隧道",
+  WH: "西區海底隧道",
+  ABT: "經香港仔隧道往灣仔",
+  ACTT: "經3號幹線往機場",
+  ATL: "經大欖隧道往機場",
+  ATSCA: "經8號幹線往機場",
+  CWBR: "經清水灣道往九龍",
+  KTPR: "經大埔道往九龍",
+  LRT: "獅子山隧道",
+  MOS: "經2號幹線往九龍",
+  PFL: "經薄扶林道往中環",
+  SMT: "城門隧道",
+  SSCPR: "經青山公路往上水",
+  SSYLH: "經9號幹線往上水",
+  TCT: "大老山隧道",
+  TKOLTT: "經將軍澳—藍田隧道往九龍",
+  TKOT: "經將軍澳隧道往九龍",
+  TKTL: "經大欖隧道往汀九",
+  TKTM: "經屯門公路往汀九",
+  TLH: "經吐露港公路往沙田",
+  TMCLK: "經屯門赤鱲角隧道往機場",
+  TPR: "經大埔道往沙田",
+  TSCA: "經8號幹線往九龍(西)",
+  TWCP: "經青山公路往荃灣(西)",
+  TWTM: "經屯門公路往荃灣",
+  WNCG: "經黃泥涌峽道往灣仔",
+};
+
+export type DisplayLocale = "en" | "zh";
+
+/** Localised display names for a journey reading. Feed carries IDs only. */
+export function journeyDisplay(r: JourneyReading, locale: DisplayLocale): {
+  originName: string; destination: string; direction: string;
+} {
+  if (locale !== "zh") return { originName: r.originName, destination: r.destination, direction: r.direction };
+  return {
+    originName: ORIGIN_NAMES_ZH[r.origin] ?? r.originName,
+    destination: DEST_NAMES_ZH[r.destinationCode] ?? r.destination,
+    direction: DIR_NAMES_ZH[ORIGIN_DIR[r.origin] ?? "OTH"] ?? r.direction,
+  };
+}
+
+/* District names. The detector CSV and parking feed publish English only,
+   so this map translates our display layer. */
+const DISTRICT_ZH: Record<string, string> = {
+  "Central & Western": "中西區",
+  "Central and Western": "中西區",
+  Eastern: "東區",
+  Islands: "離島區",
+  "Kowloon City": "九龍城區",
+  "Kwai Tsing": "葵青區",
+  "Kwun Tong": "觀塘區",
+  North: "北區",
+  "Sai Kung": "西貢區",
+  "Sha Tin": "沙田區",
+  "Sham Shui Po": "深水埗區",
+  Southern: "南區",
+  "Tai Po": "大埔區",
+  "Tsuen Wan": "荃灣區",
+  "Tuen Mun": "屯門區",
+  "Wan Chai": "灣仔區",
+  "Wong Tai Sin": "黃大仙區",
+  "Yau Tsim Mong": "油尖旺區",
+  "Yuen Long": "元朗區",
+};
+
+/** Localised district for detector / parking display. Falls back to source. */
+export function districtDisplay(name: string, locale: DisplayLocale): string {
+  if (locale !== "zh") return name;
+  const base = name.replace(/\s+District$/i, "").trim();
+  return DISTRICT_ZH[base] ?? DISTRICT_ZH[name] ?? name;
+}
 
 export function parseJourney(xml: string): JourneyReading[] {
   const out: JourneyReading[] = [];
@@ -451,14 +596,21 @@ export function mergeParking(info: any, vacancy: any): CarPark[] {
 export interface Roadwork {
   id: string;
   road: string;
+  roadTc: string;
   district: string;
+  districtTc: string;
   bound: string;
+  boundTc: string;
   lane: string;
+  laneTc: string;
   worksType: string;
+  worksTypeTc: string;
   status: string;
+  statusTc: string;
   start: string;
   end: string;
   detail: string;
+  detailTc: string;
   lat: number;
   lng: number;
 }
@@ -472,14 +624,21 @@ export function normalizeRoadworks(json: any): Roadwork[] {
       .map((r: any): Roadwork => ({
         id: String(r.roadworks_id ?? ""),
         road: r.roadname ?? "",
+        roadTc: r.roadname_tc ?? "",
         district: r.district ?? "",
+        districtTc: r.district_tc ?? "",
         bound: r.bound ?? "",
+        boundTc: r.bound_tc ?? "",
         lane: r.lane ?? "",
+        laneTc: r.lane_tc ?? "",
         worksType: r.workstype ?? "",
+        worksTypeTc: r.workstype_tc ?? "",
         status: r.worksstatus ?? "",
+        statusTc: r.worksstatus_tc ?? "",
         start: r.starttime ?? "",
         end: r.endtime ?? "",
         detail: r.locdesc ?? "",
+        detailTc: r.locdesc_tc ?? "",
         lat: Number(r.latitude) || 0,
         lng: Number(r.longitude) || 0,
       }))

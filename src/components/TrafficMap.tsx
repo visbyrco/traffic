@@ -5,6 +5,8 @@ import * as maplibregl from "maplibre-gl";
 import { config as mlConfig } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Protocol } from "pmtiles";
+import { pick, useLocale } from "@/lib/i18n";
+import { districtDisplay } from "@/lib/td";
 import type { Camera, CarPark, Roadwork } from "@/lib/td";
 import type { DetectorPoint } from "./panels-roads";
 
@@ -38,16 +40,13 @@ function ensureProtocol() {
 
 type LayerId = "detectors" | "cameras" | "parks" | "roadworks";
 
-const LAYER_META: { id: LayerId; label: string; on: boolean }[] = [
-  { id: "detectors", label: "Detectors", on: true },
-  { id: "roadworks", label: "Roadworks", on: true },
-  { id: "cameras", label: "Cameras", on: false },
-  { id: "parks", label: "Car parks", on: false },
-];
-
-const INITIAL_LAYERS: Record<LayerId, boolean> = Object.fromEntries(
-  LAYER_META.map((l) => [l.id, l.on]),
-) as Record<LayerId, boolean>;
+const LAYER_IDS = ["detectors", "roadworks", "cameras", "parks"] as const;
+const LAYER_DEFAULTS: Record<LayerId, boolean> = {
+  detectors: true,
+  roadworks: true,
+  cameras: false,
+  parks: false,
+};
 
 function parkVacancy(p: CarPark): number | null {
   const v = p.vacancies.find((x) => x.vehicle === "privateCar") ?? p.vacancies.find((x) => x.vehicle === "P") ?? p.vacancies[0];
@@ -62,7 +61,8 @@ export default function TrafficMap({
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [layers, setLayers] = useState<Record<LayerId, boolean>>(INITIAL_LAYERS);
+  const [layers, setLayers] = useState<Record<LayerId, boolean>>(LAYER_DEFAULTS);
+  const { locale, t } = useLocale();
 
   const geo = useMemo(() => {
     const fc = (features: object[]): GeoJSON.FeatureCollection => ({
@@ -74,8 +74,8 @@ export default function TrafficMap({
           type: "Feature",
           geometry: { type: "Point", coordinates: [d.lng, d.lat] },
           properties: {
-            title: d.road, sub: `${d.avgSpeed} km/h · vol ${d.volume}/30s · occ ${d.maxOcc}%`,
-            meta: `${d.district} · ${d.id}`, status: d.status,
+            title: d.road, sub: `${d.avgSpeed} km/h · ${t.map.vol} ${d.volume}/30s · ${t.map.occ} ${d.maxOcc}%`,
+            meta: `${districtDisplay(d.district, locale)} · ${d.id}`, status: d.status,
           },
         })),
       ),
@@ -94,8 +94,8 @@ export default function TrafficMap({
             geometry: { type: "Point", coordinates: [p.lng, p.lat] },
             properties: {
               title: p.name,
-              sub: v == null ? "no live vacancy" : `${v} private-car spaces`,
-              meta: p.district,
+              sub: v == null ? t.map.noVacancy : t.map.privateCarSpaces(v),
+              meta: districtDisplay(p.district, locale),
               vacancy: v == null ? "none" : v <= 0 ? "full" : v < 10 ? "low" : "open",
             },
           };
@@ -106,13 +106,13 @@ export default function TrafficMap({
           type: "Feature",
           geometry: { type: "Point", coordinates: [r.lng, r.lat] },
           properties: {
-            title: r.road, sub: r.detail,
-            meta: `${r.bound} bound · ${r.lane} · ${r.start} → ${r.end}`, kind: "works",
+            title: pick(r.road, r.roadTc, locale), sub: pick(r.detail, r.detailTc, locale),
+            meta: `${t.map.bound(pick(r.bound, r.boundTc, locale))} · ${pick(r.lane, r.laneTc, locale)} · ${r.start} → ${r.end}`, kind: "works",
           },
         })),
       ),
     };
-  }, [cameras, detectors, parks, roadworks]);
+  }, [cameras, detectors, parks, roadworks, t, locale]);
 
   // Init once.
   useEffect(() => {
@@ -185,7 +185,7 @@ export default function TrafficMap({
             });
             map.on("mouseenter", id, () => { if (map) map.getCanvas().style.cursor = "pointer"; });
             map.on("mouseleave", id, () => { if (map) map.getCanvas().style.cursor = ""; });
-            if (!INITIAL_LAYERS[id]) map.setLayoutProperty(id, "visibility", "none");
+            if (!LAYER_DEFAULTS[id]) map.setLayoutProperty(id, "visibility", "none");
           }
           mapRef.current = map;
           setStatus("ready");
@@ -222,23 +222,26 @@ export default function TrafficMap({
     }
   }, [layers, status]);
 
+  const layerLabel = (id: LayerId) =>
+    id === "detectors" ? t.map.detectors : id === "roadworks" ? t.map.roadworks : id === "cameras" ? t.map.cameras : t.map.parks;
+
   return (
     <div className="relative">
       <div ref={el} className="h-[62vh] min-h-[420px] w-full rounded-[10px] bg-wash" />
       {status !== "ready" && (
         <div className="absolute inset-0 flex items-center justify-center rounded-[10px] bg-wash text-sm text-muted">
-          {status === "loading" ? "Loading Hong Kong vector tiles" : "Tile source unreachable. Check hk-pmtiles-generation Pages status."}
+          {status === "loading" ? t.map.loadingTiles : t.map.tilesDown}
         </div>
       )}
       {status === "ready" && (
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-          {LAYER_META.map((l) => (
+          {LAYER_IDS.map((id) => (
             <button
-              key={l.id}
-              onClick={() => setLayers((s) => ({ ...s, [l.id]: !s[l.id] }))}
-              className={`type-data rounded-md border px-2.5 py-1 backdrop-blur transition ${layers[l.id] ? "border-ink bg-card/95 text-ink" : "border-hairline bg-card/95 text-muted"}`}
+              key={id}
+              onClick={() => setLayers((s) => ({ ...s, [id]: !s[id] }))}
+              className={`type-data rounded-md border px-2.5 py-1 backdrop-blur transition ${layers[id] ? "border-ink bg-card/95 text-ink" : "border-hairline bg-card/95 text-muted"}`}
             >
-              {l.label}
+              {layerLabel(id)}
             </button>
           ))}
         </div>

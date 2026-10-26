@@ -51,18 +51,28 @@ export function usePoll<T>(url: string, intervalMs: number): PollState<T> {
 
 /* ---------- formatting ---------- */
 
-export function hkTime(iso: string | null | undefined): string {
+import { intlLocale, useLocale, type Locale } from "@/lib/i18n";
+
+export function hkTime(iso: string | null | undefined, locale: Locale = "en"): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return String(iso).slice(0, 16).replace("T", " ");
-  return d.toLocaleString("en-HK", { timeZone: "Asia/Hong_Kong", hour12: false, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleString(intlLocale(locale), { timeZone: "Asia/Hong_Kong", hour12: false, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-export function ago(iso: string | null | undefined, now: number): string {
+export function ago(iso: string | null | undefined, now: number, locale: Locale = "en"): string {
   if (!iso) return "";
   const t = new Date(iso).getTime();
   if (Number.isNaN(t)) return "";
   const s = Math.max(0, Math.floor((now - t) / 1000));
+  if (locale === "zh") {
+    if (s < 60) return `${s}秒前`;
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}分鐘前`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}小時${m % 60}分鐘前`;
+    return `${Math.floor(h / 24)}日前`;
+  }
   if (s < 60) return `${s}s ago`;
   const m = Math.floor(s / 60);
   if (m < 60) return `${m}m ago`;
@@ -117,10 +127,11 @@ export function SectionHead({
 }
 
 export function FeedNote({ updatedAt, label }: { updatedAt: Date | null; label: string }) {
+  const { t } = useLocale();
   return (
     <span className="type-data inline-flex items-center gap-2 text-muted">
       <span className="status-dot bg-good" aria-hidden />
-      {label} · {updatedAt ? updatedAt.toLocaleTimeString("en-HK", { timeZone: "Asia/Hong_Kong", hour12: false }) : "connecting"}
+      {label} · {updatedAt ? updatedAt.toLocaleTimeString("en-HK", { timeZone: "Asia/Hong_Kong", hour12: false }) : t.common.connecting}
     </span>
   );
 }
@@ -138,10 +149,11 @@ export const inputCls =
   "min-h-9 w-full rounded-md border border-hairline bg-background px-3 py-2 text-sm text-ink placeholder:text-faint outline-none focus:border-ink";
 
 export function PanelError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const { t } = useLocale();
   return (
     <div className="ledger flex items-center justify-between gap-3 px-4 py-3 text-sm text-ink">
-      <span><span className="font-semibold text-bad">Feed down. </span><span className="text-muted">{message}</span></span>
-      <button onClick={onRetry} className="rounded-lg border border-hairline px-3 py-1.5 text-xs text-accent transition hover:bg-wash">Retry</button>
+      <span><span className="font-semibold text-bad">{t.common.feedDown} </span><span className="text-muted">{message}</span></span>
+      <button onClick={onRetry} className="rounded-lg border border-hairline px-3 py-1.5 text-xs text-accent transition hover:bg-wash">{t.common.retry}</button>
     </div>
   );
 }
