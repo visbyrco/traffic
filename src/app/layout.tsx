@@ -1,21 +1,15 @@
 import type { Metadata } from "next";
-import { Barlow_Condensed, JetBrains_Mono, Noto_Sans_HK } from "next/font/google";
+import { Geist_Mono, Inter_Tight } from "next/font/google";
 import "./globals.css";
 
-const display = Barlow_Condensed({
-  weight: ["500", "600", "700"],
+const display = Inter_Tight({
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
   variable: "--font-display",
 });
 
-const body = Noto_Sans_HK({
-  weight: ["400", "500", "700"],
-  subsets: ["latin"],
-  variable: "--font-body",
-});
-
-const gmono = JetBrains_Mono({
-  weight: ["400", "500", "700"],
+const gmono = Geist_Mono({
+  weight: ["400", "500"],
   subsets: ["latin"],
   variable: "--font-gmono",
 });
@@ -28,7 +22,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable} ${gmono.variable} h-full antialiased`}>
+    <html lang="en" className={`${display.variable} ${gmono.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

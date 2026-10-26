@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { CarPark, Roadwork } from "@/lib/td";
 import { vehicleLabel } from "@/lib/td";
 import {
-  FeedNote, Field, PanelError, SectionHead, Skeleton, ToneBadge,
+  FeedNote, Field, PanelError, SectionHead, Skeleton, StatusLine,
   ago, hkTime, inputCls, type PollState, type Tone,
 } from "./ui";
 
@@ -47,14 +47,14 @@ export function ParkingPanel({ poll, now }: { poll: PollState<ParkingPayload>; n
     <section>
       <SectionHead
         kicker="One-stop parking 泊車 · ~590 car parks"
-        title="Car parks 停車場"
-        blurb="Live vacancies from the one-stop feed: TD car parks, Kowloon East smart parks, mall parks such as Domain. EV and accessible bays where reported."
+        title="Car parks"
+        blurb="Live vacancies from the one-stop feed: TD car parks, Kowloon East smart parks, mall parks. EV and accessible bays where reported."
         right={<FeedNote updatedAt={poll.updatedAt} label="LIVE" />}
       />
       {poll.error && <PanelError message={poll.error} onRetry={poll.refresh} />}
       {poll.loading && !poll.data ? <Skeleton rows={4} /> : (
         <>
-          <div className="mb-4 flex flex-wrap gap-3">
+          <div className="mb-5 flex flex-wrap gap-3">
             <Field label={`Search · ${list.length} car parks`} grow>
               <input value={q} onChange={(e) => { setQ(e.target.value); setShown(48); }} placeholder="e.g. Tsim Sha Tsui, IFC, Tin Shui Wai…" className={inputCls} />
             </Field>
@@ -78,39 +78,37 @@ export function ParkingPanel({ poll, now }: { poll: PollState<ParkingPayload>; n
               </select>
             </Field>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="border-t border-hairline">
             {list.slice(0, shown).map(({ p, v }) => (
-              <div key={p.id} className="card flex items-center gap-3 px-4 py-3">
+              <div key={p.id} className="flex items-baseline gap-4 border-b border-hairline py-3">
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13px] font-semibold text-white">{p.name}</div>
-                  <div className="truncate text-[11px] text-stone-500">{p.district} · {p.address}</div>
-                  <div className="font-gmono mt-1 text-[10px] text-stone-600">
+                  <div className="truncate text-[15px] font-medium text-ink">{p.name}</div>
+                  <div className="type-data truncate text-muted">{p.district} · {p.address}</div>
+                  <div className="type-data mt-0.5 text-muted">
                     {p.opening ? `${p.opening} · ` : ""}{p.height ? `≤ ${p.height}m · ` : ""}{v ? `upd ${ago(v.lastupdate, now)}` : "no live feed"}
+                    {v != null && (v.ev != null || v.dis != null) && (
+                      <span> · {v.ev != null && <span>EV {v.ev} </span>}{v.dis != null && <span>accessible {v.dis}</span>}</span>
+                    )}
                   </div>
-                  {v != null && (v.ev != null || v.dis != null) && (
-                    <div className="font-gmono mt-0.5 text-[10px] text-stone-500">
-                      {v.ev != null && <span>EV {v.ev} · </span>}{v.dis != null && <span>accessible {v.dis}</span>}
-                    </div>
-                  )}
                   {p.website && (
-                    <a href={p.website} target="_blank" rel="noreferrer" className="mt-0.5 inline-block text-[10px] text-vms-300/80 hover:underline">operator site</a>
+                    <a href={p.website} target="_blank" rel="noreferrer" className="mt-0.5 inline-block text-[12px] text-accent hover:underline">operator site</a>
                   )}
                 </div>
-                <div className="text-right">
+                <div className="shrink-0 text-right">
                   {v ? (
                     <>
-                      <div className={`font-gmono text-2xl font-bold ${v.vacancy <= 0 ? "text-bad-400" : v.vacancy < 10 ? "text-slow-400" : "text-go-400"}`}>{v.vacancy}</div>
-                      <ToneBadge tone={vacancyTone(v.vacancy)}>{v.vacancy <= 0 ? "Full" : "spaces"}</ToneBadge>
+                      <div className={`font-display text-2xl font-semibold tabular-nums leading-none ${v.vacancy <= 0 ? "text-bad" : v.vacancy < 10 ? "text-warn" : "text-good"}`}>{v.vacancy}</div>
+                      <div className="mt-1"><StatusLine tone={vacancyTone(v.vacancy)}>{v.vacancy <= 0 ? "Full" : "spaces"}</StatusLine></div>
                     </>
-                  ) : <span className="text-[11px] text-stone-600">no data</span>}
+                  ) : <span className="type-data text-muted">no data</span>}
                 </div>
               </div>
             ))}
           </div>
-          {list.length === 0 && <div className="card p-6 text-center text-sm text-stone-400">No car parks match.</div>}
+          {list.length === 0 && <p className="border-b border-hairline py-8 text-center text-sm text-muted">No car parks match.</p>}
           {shown < list.length && (
-            <div className="mt-4 text-center">
-              <button onClick={() => setShown(shown + 60)} className="chip px-4 py-2 text-xs text-vms-300 hover:bg-vms-400/10">
+            <div className="mt-6 text-center">
+              <button onClick={() => setShown(shown + 60)} className="rounded-lg border border-hairline px-4 py-2 text-[13px] text-accent transition hover:bg-wash">
                 Show more ({list.length - shown} remaining)
               </button>
             </div>
@@ -125,7 +123,7 @@ export function ParkingPanel({ poll, now }: { poll: PollState<ParkingPayload>; n
 
 interface RoadworksPayload { roadworks: Roadwork[]; count: number }
 
-export function RoadworksPanel({ poll, now }: { poll: PollState<RoadworksPayload>; now: number }) {
+export function RoadworksPanel({ poll }: { poll: PollState<RoadworksPayload> }) {
   const [q, setQ] = useState("");
   const [district, setDistrict] = useState("all");
 
@@ -137,20 +135,18 @@ export function RoadworksPanel({ poll, now }: { poll: PollState<RoadworksPayload
       (!needle || `${r.road} ${r.detail} ${r.worksType} ${r.lane}`.toLowerCase().includes(needle)));
   }, [poll.data, q, district]);
 
-  void now;
-
   return (
     <section>
       <SectionHead
         kicker="Highways Dept · closures on 70 km/h+ roads"
-        title="Roadworks 道路工程"
+        title="Roadworks"
         blurb="Lane closures on faster roads, with the affected lanes and times."
         right={<FeedNote updatedAt={poll.updatedAt} label={`${poll.data?.count ?? 0} ACTIVE`} />}
       />
       {poll.error && <PanelError message={poll.error} onRetry={poll.refresh} />}
       {poll.loading && !poll.data ? <Skeleton rows={4} /> : (
         <>
-          <div className="mb-4 flex flex-wrap gap-3">
+          <div className="mb-5 flex flex-wrap gap-3">
             <Field label="Search road / works" grow>
               <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. Tsing Yi, tunnel, resurfacing…" className={inputCls} />
             </Field>
@@ -161,22 +157,22 @@ export function RoadworksPanel({ poll, now }: { poll: PollState<RoadworksPayload
               </select>
             </Field>
           </div>
-          {list.length === 0 && <div className="card p-6 text-center text-sm text-stone-400">No roadworks on record right now. Enjoy it while it lasts.</div>}
-          <div className="grid gap-3 md:grid-cols-2">
+          {list.length === 0 && <p className="border-y border-hairline py-8 text-center text-sm text-muted">No roadworks on record right now.</p>}
+          <div className="border-t border-hairline">
             {list.map((r) => (
-              <article key={r.id} className="card p-4">
-                <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                  <ToneBadge tone={r.status === "In Progress" ? "amber" : "grey"}>{r.status || "Scheduled"}</ToneBadge>
-                  <span className="text-[11px] text-stone-500">{r.worksType}</span>
+              <article key={r.id} className="border-b border-hairline py-4">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <StatusLine tone={r.status === "In Progress" ? "amber" : "grey"}>{r.status || "Scheduled"}</StatusLine>
+                  <span className="type-data text-muted">{r.worksType}</span>
                 </div>
-                <h3 className="font-display text-[15px] font-semibold text-white">{r.road}</h3>
-                <p className="mt-0.5 text-[13px] text-stone-300">{r.detail}</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {r.district && <span className="chip px-2 py-0.5 text-[11px] text-stone-400">{r.district}</span>}
-                  {r.bound && <span className="chip px-2 py-0.5 text-[11px] text-stone-400">{r.bound} bound</span>}
-                  {r.lane && <span className="chip px-2 py-0.5 text-[11px] text-slow-400">{r.lane}</span>}
+                <h3 className="mt-1.5 text-[16px] font-semibold text-ink">{r.road}</h3>
+                <p className="mt-0.5 text-[14px] leading-relaxed text-muted">{r.detail}</p>
+                <div className="type-data mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-muted">
+                  {r.district && <span>{r.district}</span>}
+                  {r.bound && <span>{r.bound} bound</span>}
+                  {r.lane && <span className="text-warn">{r.lane}</span>}
                 </div>
-                <div className="font-gmono mt-2 text-[11px] text-stone-500">{r.start} → {r.end}</div>
+                <div className="type-data mt-1 text-muted">{r.start} → {r.end}</div>
               </article>
             ))}
           </div>
@@ -313,7 +309,7 @@ export function BusesPanel({ now }: { now: number }) {
 
   const loadCtb = async (route: string, dir: string) => {
     const rs = await busGet("ctb", `/route-stop/CTB/${route}/${dir}`);
-    const rows: StopRow[] = (rs.data ?? []).map((s: { seq: number; stop: string }) => ({ seq: Number(s.seq), id: s.stop, name: s.stop }));
+    const rows: StopRow[] = (rs.data ?? []).map((s: { seq: number; stop: string }) => ({ seq: Number(s.seq), name: s.stop, id: s.stop }));
     setStops(rows);
     setEtas([]);
     const names = await Promise.all(rows.map((r) => ctbStopName(r.id)));
@@ -371,11 +367,11 @@ export function BusesPanel({ now }: { now: number }) {
     <section>
       <SectionHead
         kicker="KMB · Citybus · GMB 實時到站"
-        title="Bus ETAs 巴士到站時間"
+        title="Bus ETAs"
         blurb="Next-bus times from the operators. Pick a route, a direction, a stop."
         right={searched ? <FeedNote updatedAt={new Date()} label="LIVE" /> : undefined}
       />
-      <div className="mb-4 flex flex-wrap gap-3">
+      <div className="mb-5 flex flex-wrap gap-3">
         <Field label="Operator">
           <select value={co} onChange={(e) => { setCo(e.target.value as Co); setVariants([]); setStops([]); setEtas([]); setSearched(false); setError(null); }} className={inputCls}>
             <option value="kmb">KMB / Long Win Bus</option>
@@ -398,8 +394,8 @@ export function BusesPanel({ now }: { now: number }) {
           )}
         </Field>
         <div className="flex items-end">
-          <button onClick={search} disabled={loading} className="rounded-md bg-sign-600 px-5 py-2 text-sm font-bold text-white hover:bg-sign-500 disabled:opacity-50">
-            {loading ? "Loading…" : "Find stops"}
+          <button onClick={search} disabled={loading} className="min-h-9 rounded-md border border-hairline px-4 py-2 text-sm font-medium text-ink transition hover:bg-wash disabled:opacity-50">
+            {loading ? "Loading" : "Find stops"}
           </button>
         </div>
       </div>
@@ -412,13 +408,13 @@ export function BusesPanel({ now }: { now: number }) {
         </Field>
       )}
       {stops.length > 0 && (
-        <div className="card mt-3 overflow-hidden">
-          <table className="w-full text-left text-[13px]">
+        <div className="mt-4 overflow-x-auto border-t border-hairline">
+          <table className="w-full text-left text-[14px]">
             <thead>
-              <tr className="font-gmono border-b border-line text-[10px] uppercase tracking-[0.15em] text-stone-500">
-                <th className="w-10 px-4 py-2.5 text-right">#</th>
-                <th className="px-2 py-2.5">Stop</th>
-                <th className="px-4 py-2.5 text-right">Next buses</th>
+              <tr className="type-eyebrow border-b border-hairline text-muted">
+                <th className="w-10 py-2.5 pr-2 text-right font-normal">#</th>
+                <th className="px-2 py-2.5 font-normal">Stop</th>
+                <th className="py-2.5 pl-2 text-right font-normal">Next buses</th>
               </tr>
             </thead>
             <tbody>
@@ -426,20 +422,20 @@ export function BusesPanel({ now }: { now: number }) {
                 const list = etaByStop.get(s.seq) ?? [];
                 const show = co === "gmb" ? list.filter(() => s.id === gmbStop) : list.slice(0, 3);
                 return (
-                  <tr key={s.seq} className="border-b border-line/50 last:border-0 hover:bg-white/[0.02]">
-                    <td className="font-gmono px-4 py-2.5 text-right text-stone-500">{s.seq}</td>
-                    <td className="px-2 py-2.5 font-medium text-stone-100">{s.name}</td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex flex-wrap justify-end gap-1.5">
+                  <tr key={s.seq} className="row-hover border-b border-hairline">
+                    <td className="type-data py-2.5 pr-2 text-right text-muted">{s.seq}</td>
+                    <td className="px-2 py-2.5 font-medium text-ink">{s.name}</td>
+                    <td className="py-2.5 pl-2">
+                      <div className="flex flex-wrap justify-end gap-3">
                         {co === "gmb" ? (
                           <button onClick={() => { const v = variants.find((x) => x.key === variantKey); if (v) { setLoading(true); loadGmbEta(Number(v.st), Number(v.dir), s).catch((e) => setError(String(e))).finally(() => setLoading(false)); } }}
-                            className="chip px-2.5 py-1 text-[11px] text-vms-300 hover:bg-vms-400/10">
+                            className="type-data text-accent hover:underline">
                             {s.id === gmbStop && show.length > 0 ? show.map((e) => mins(e.eta)).join(" · ") : "Check ETA"}
                           </button>
-                        ) : show.length === 0 ? <span className="text-[11px] text-stone-600">no departures</span> :
+                        ) : show.length === 0 ? <span className="type-data text-muted">no departures</span> :
                           show.map((e, i) => (
                             <span key={i} title={`${hkTime(e.eta)} · ${e.dest} ${e.remark ? `· ${e.remark}` : ""}`}
-                              className={`chip px-2.5 py-1 font-gmono text-[11px] ${i === 0 ? "border-go-500/50 text-go-400" : "text-stone-300"}`}>
+                              className={`type-data ${i === 0 ? "font-medium text-accent" : "text-muted"}`}>
                               {mins(e.eta)}
                             </span>
                           ))}

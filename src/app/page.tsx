@@ -17,33 +17,33 @@ export default function Page() {
   return (
     <main>
       <Dashboard />
-      <footer className="border-t border-line">
-        <div className="mx-auto max-w-7xl px-5 py-8">
-          <div className="font-gmono flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-stone-400">
-            <span className="inline-block h-2 w-2 bg-vms-400" aria-hidden />
-            <span>Open data sources 資料來源 · data.gov.hk</span>
+      <footer className="border-t border-hairline">
+        <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
+          <div className="type-eyebrow text-muted">
+            Open data sources 資料來源 · data.gov.hk
           </div>
-          <p className="mt-2 max-w-3xl text-xs leading-relaxed text-stone-500">
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
             Every number here comes from Transport Department and operator datasets on the open data portal.
             This app only proxies and reformats them. The congestion bands on the speed map are our own
             heuristic, everything else is published as-is. Not an official TD service.
           </p>
-          <ul className="mt-4 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="mt-5 border-t border-hairline">
             {SOURCES.map((s) => (
-              <li key={s.id}>
+              <li key={s.id} className="border-b border-hairline">
                 <a
                   href={`https://data.gov.hk/en-data/dataset/${s.id}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-gmono block truncate rounded-[5px] border border-line px-3 py-2 text-[11px] text-stone-400 transition hover:border-vms-400/50 hover:text-vms-300"
+                  className="type-data row-hover flex flex-wrap gap-x-3 py-2 text-muted hover:text-accent"
                   title={s.id}
                 >
-                  <span className="text-stone-200">{s.use}</span> · {s.id}
+                  <span className="font-medium text-ink">{s.use}</span>
+                  <span className="truncate">{s.id}</span>
                 </a>
               </li>
             ))}
           </ul>
-          <p className="font-gmono mt-6 text-[11px] text-stone-600">Visbyr Traffic 香港即時交通 · unofficial · MIT</p>
+          <p className="type-data mt-6 text-muted">Visbyr Traffic 香港即時交通 · unofficial · MIT</p>
         </div>
       </footer>
     </main>
