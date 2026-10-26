@@ -15,9 +15,9 @@ const gmono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Visbyr Traffic — live Hong Kong traffic conditions",
+  title: "Visbyr Traffic 香港即時交通 — live Hong Kong traffic conditions",
   description:
-    "Live Hong Kong traffic: incidents, cross-harbour journey times, CCTV snapshots, detector speeds, parking vacancies, roadworks and bus ETAs. Built on DATA.GOV.HK open datasets.",
+    "Live Hong Kong traffic: incidents, cross-harbour journey times, CCTV snapshots, detector speeds, parking vacancies, roadworks and bus ETAs. Built on DATA.GOV.HK open datasets. 即時香港交通：事故、過海行車時間、交通快拍、偵測器車速、泊車空位、道路工程及巴士到站時間。",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

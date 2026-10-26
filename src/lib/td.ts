@@ -20,13 +20,21 @@ export interface Incident {
   id: string;
   number: string;
   heading: string;
+  headingTc: string;
   detail: string;
+  detailTc: string;
   location: string;
+  locationTc: string;
   direction: string;
+  directionTc: string;
   district: string;
+  districtTc: string;
   landmark: string;
+  landmarkTc: string;
   content: string;
+  contentTc: string;
   status: string;
+  statusTc: string;
   announcedAt: string;
 }
 
@@ -39,20 +47,34 @@ export function parseIncidents(xml: string): Incident[] {
   const out: Incident[] = [];
   for (const m of xml.matchAll(/<message>([\s\S]*?)<\/message>/g)) {
     const b = m[1];
+    // One TD feed carries both languages: _EN and _CN siblings.
+    const landmarkEn = tag(b, "NEAR_LANDMARK_EN");
+    const landmarkTc = tag(b, "NEAR_LANDMARK_CN");
     out.push({
       id: tag(b, "ID"),
       number: tag(b, "INCIDENT_NUMBER"),
       heading: tag(b, "INCIDENT_HEADING_EN") || "Traffic notice",
+      headingTc: tag(b, "INCIDENT_HEADING_CN"),
       detail: tag(b, "INCIDENT_DETAIL_EN"),
+      detailTc: tag(b, "INCIDENT_DETAIL_CN"),
       location: tag(b, "LOCATION_EN"),
+      locationTc: tag(b, "LOCATION_CN"),
       direction: tag(b, "DIRECTION_EN"),
+      directionTc: tag(b, "DIRECTION_CN"),
       district:
         tag(b, "DISTRICT_EN") ||
         tag(b, "NEAR_LANDMARK_EN") ||
         tag(b, "BETWEEN_LANDMARK_EN"),
-      landmark: tag(b, "NEAR_LANDMARK_EN"),
+      districtTc:
+        tag(b, "DISTRICT_CN") ||
+        tag(b, "NEAR_LANDMARK_CN") ||
+        tag(b, "BETWEEN_LANDMARK_CN"),
+      landmark: landmarkEn,
+      landmarkTc,
       content: tag(b, "CONTENT_EN"),
+      contentTc: tag(b, "CONTENT_CN"),
       status: tag(b, "INCIDENT_STATUS_EN"),
+      statusTc: tag(b, "INCIDENT_STATUS_CN"),
       announcedAt: tag(b, "ANNOUNCEMENT_DATE"),
     });
   }
@@ -451,14 +473,21 @@ export function mergeParking(info: any, vacancy: any): CarPark[] {
 export interface Roadwork {
   id: string;
   road: string;
+  roadTc: string;
   district: string;
+  districtTc: string;
   bound: string;
+  boundTc: string;
   lane: string;
+  laneTc: string;
   worksType: string;
+  worksTypeTc: string;
   status: string;
+  statusTc: string;
   start: string;
   end: string;
   detail: string;
+  detailTc: string;
   lat: number;
   lng: number;
 }
@@ -472,14 +501,21 @@ export function normalizeRoadworks(json: any): Roadwork[] {
       .map((r: any): Roadwork => ({
         id: String(r.roadworks_id ?? ""),
         road: r.roadname ?? "",
+        roadTc: r.roadname_tc ?? "",
         district: r.district ?? "",
+        districtTc: r.district_tc ?? "",
         bound: r.bound ?? "",
+        boundTc: r.bound_tc ?? "",
         lane: r.lane ?? "",
+        laneTc: r.lane_tc ?? "",
         worksType: r.workstype ?? "",
+        worksTypeTc: r.workstype_tc ?? "",
         status: r.worksstatus ?? "",
+        statusTc: r.worksstatus_tc ?? "",
         start: r.starttime ?? "",
         end: r.endtime ?? "",
         detail: r.locdesc ?? "",
+        detailTc: r.locdesc_tc ?? "",
         lat: Number(r.latitude) || 0,
         lng: Number(r.longitude) || 0,
       }))
